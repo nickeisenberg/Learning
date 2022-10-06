@@ -23,12 +23,12 @@ def poly_approx(fun, dom_l=0, dom_h=1, part_size=100, order=1, noise=False):
         return np.sqrt(np.sum(np.abs(approx_data - data) ** 2))
 
     guess = np.random.randn(order)
+
     coefficients = minimize(poly, guess, args=(domain, data)).x
 
     return coefficients
 
 #########################Some Examples#########################
-
 '''
 def approx_sin(dom_l=0, dom_h=3*np.pi, order=5, part_size=5000, noise=False):
     coef = poly_approx(np.sin, dom_l=dom_l, dom_h=dom_h, order=order)
@@ -50,7 +50,6 @@ plt.plot(domain, np.sin(domain))
 plt.plot(domain, values_sin)
 plt.show()
 '''
-
 '''
 def approx_poly(dom_l=-4, dom_h=4, order=5, part_size=5000, noise=False):
     fun = lambda x : x ** 4 - 3 * x ** 2 + x + 1
