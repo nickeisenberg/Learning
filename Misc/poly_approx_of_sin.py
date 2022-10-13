@@ -20,7 +20,7 @@ def approx_k(coef, n):
         for a in range(len(coef)):
             poly_k.append(coef[a] * t ** a)
         poly_k = np.sum(np.array(poly_k))
-        summands.append(abs(poly_k - np.sin(t)))
+        summands.append(abs( poly_k - np.sin(t) ))
     summands = np.array(summands)
     return np.sum(summands)
 

@@ -28,11 +28,11 @@ order, lowcut, highcut = (4, 7, 15)
 bp_b, bp_a = sp.signal.butter(order, [lowcut, highcut], btype='bandpass', fs=1001)
 filt_data_bp_ba = sp.signal.lfilter(bp_b, bp_a, data)
 
-# Bandstop filter sos
+# Bandstop filter ba 
 bs_b, bs_a = sp.signal.butter(order, [lowcut, highcut], btype='bandstop', fs=1001)
 filt_data_bs_ba = sp.signal.lfilter(bs_b, bs_a , data)
 
-# Highpass filter sos
+# Highpass filter ba
 # Had to use filtfilt instead of lfilter. lfilter gave bad results
 u_b, u_a = sp.signal.butter(order, lowcut, btype='highpass', fs=1001)
 filt_data_u_ba = sp.signal.filtfilt(u_b, u_a, data)

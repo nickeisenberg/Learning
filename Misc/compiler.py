@@ -1,11 +1,19 @@
 import pandas as pd
 import numpy as np
-from scipy.optimize import minimize
 
-def fun(param):
-    x, y = param
-    return x * 2 - (y + x ) ** 2
+x1 = np.array([1, 2, 3])
+x2 = np.array([1, 2, 3])
+x3 = np.array([1, 2, 3])
 
-initial_guess = [2,2]
-param = minimize(fun, initial_guess)
-print(param)
+x = [x1, x2, x3]
+
+x = np.array(x)
+
+print(x)
+
+print(np.sum(x, axis=0))
+
+y = np.array([[1,1,1],[1,1,1],[1,1,1]])
+
+print(x + y)
+
