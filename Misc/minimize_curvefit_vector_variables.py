@@ -5,7 +5,7 @@ from scipy.optimize import minimize, curve_fit
 # create some known signal to curve fit
 time = np.linspace(0, 1, 501)
 data = np.cos(2 * np.pi * 4 * time) + np.cos(2 * np.pi * 9 * time) + np.cos(2 * np.pi * 20 * time)
-noise = np.sqrt(1 / 25) * np.random.randn(501)
+noise = np.sqrt(1 / 15) * np.random.randn(501)
 signal = data + noise
 
 # create the approximating function
@@ -63,14 +63,25 @@ guess = np.reshape(guess, (1, guess.shape[0] * guess.shape[1]))
 optimization = minimize(resid, guess, args=(time))
 params = optimization.x
 err = np.max(np.abs(signal - cos_sum(time, params)))
+plt.subplot(131)
 plt.plot(time, cos_sum(time, params), label=f'None: {err}')
+plt.plot(time, signal)
+plt.legend(loc='upper center')
 
 optimization = minimize(resid, guess, args=(time), method='Nelder-Mead')
 params = optimization.x
 err = np.max(np.abs(signal - cos_sum(time, params)))
+plt.subplot(132)
 plt.plot(time, cos_sum(time, params), label=f'Nelder-Mead: {err}')
-
-# plt.plot(time, cos_sum(time, guess), label='guess')
 plt.plot(time, signal)
 plt.legend(loc='upper center')
+
+optimization = minimize(resid, guess, args=(time), method='Powell')
+params = optimization.x
+err = np.max(np.abs(signal - cos_sum(time, params)))
+plt.subplot(133)
+plt.plot(time, cos_sum(time, params), label=f'Powell: {err}')
+plt.plot(time, signal)
+plt.legend(loc='upper center')
+
 plt.show()
