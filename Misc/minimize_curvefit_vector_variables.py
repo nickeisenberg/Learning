@@ -36,8 +36,6 @@ def cos_sum(x, P):
 
     return np.sum(sums, axis=0)
 
-P = np.array([[1, 1, 1], 2 * np.pi * np.array([4., 9., 20.]), [0, 0, 0]], dtype=float).T
-
 # create a residual function for minimize
 # def resid(params, x):
 #     fit = cos_sum(x, *params)
@@ -64,7 +62,15 @@ guess = np.reshape(guess, (1, guess.shape[0] * guess.shape[1]))
 
 optimization = minimize(resid, guess, args=(time))
 params = optimization.x
+err = np.max(np.abs(signal - cos_sum(time, params)))
+plt.plot(time, cos_sum(time, params), label=f'None: {err}')
 
+optimization = minimize(resid, guess, args=(time), method='Nelder-Mead')
+params = optimization.x
+err = np.max(np.abs(signal - cos_sum(time, params)))
+plt.plot(time, cos_sum(time, params), label=f'Nelder-Mead: {err}')
+
+# plt.plot(time, cos_sum(time, guess), label='guess')
 plt.plot(time, signal)
-plt.plot(time, cos_sum(time, params))
+plt.legend(loc='upper center')
 plt.show()
