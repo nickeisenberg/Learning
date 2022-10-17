@@ -64,24 +64,24 @@ optimization = minimize(resid, guess, args=(time))
 params = optimization.x
 err = np.max(np.abs(signal - cos_sum(time, params)))
 plt.subplot(131)
-plt.plot(time, cos_sum(time, params), label=f'None: {err}')
 plt.plot(time, signal)
+plt.plot(time, cos_sum(time, params), label=f'None: {err}')
 plt.legend(loc='upper center')
 
 optimization = minimize(resid, guess, args=(time), method='Nelder-Mead')
 params = optimization.x
 err = np.max(np.abs(signal - cos_sum(time, params)))
 plt.subplot(132)
-plt.plot(time, cos_sum(time, params), label=f'Nelder-Mead: {err}')
 plt.plot(time, signal)
+plt.plot(time, cos_sum(time, params), label=f'Nelder-Mead: {err}')
 plt.legend(loc='upper center')
 
 optimization = minimize(resid, guess, args=(time), method='Powell')
 params = optimization.x
 err = np.max(np.abs(signal - cos_sum(time, params)))
 plt.subplot(133)
-plt.plot(time, cos_sum(time, params), label=f'Powell: {err}')
 plt.plot(time, signal)
+plt.plot(time, cos_sum(time, params), label=f'Powell: {err}')
 plt.legend(loc='upper center')
 
 plt.show()
