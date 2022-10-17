@@ -24,8 +24,8 @@ open_price_wiener = wiener(open_price, 9)
 open_price_med = medfilt(open_price, 9)
 
 # Plotting a spectrogram
-time_window = 32
-time_step = 32
+time_window = 256
+time_step = 256
 time_unit = 1
 
 spectrogram = []
@@ -46,19 +46,19 @@ for time_start in np.arange(0, len(open_price), time_step):
 spectrogram = np.array(spectrogram).T
 spec_times = np.array(spec_times)
 
-plt.subplot(121)
-plt.plot(freqs, spectrogram[:,2])
-plt.subplot(122)
-plt.plot(freqs, spectrogram[:,9])
-plt.show()
+# plt.subplot(121)
+# plt.plot(freqs, spectrogram[:,2])
+# plt.subplot(122)
+# plt.plot(freqs, spectrogram[:,9])
+# plt.show()
 
-'''
-fig, ax = plt.subplots()
-x2d, y2d = np.meshgrid(spec_times, freqs)
-pc = ax.pcolormesh(spec_times, freqs, spectrogram, shading='auto')
-fig.colorbar(pc)
-plt.show()
-'''
+
+# fig, ax = plt.subplots()
+# x2d, y2d = np.meshgrid(spec_times, freqs)
+# pc = ax.pcolormesh(spec_times, freqs, 10 * np.log10(spectrogram + .001), shading='auto')
+# fig.colorbar(pc)
+# plt.show()
+
 
 '''
 time = np.linspace(0, 2, len(open_price))
