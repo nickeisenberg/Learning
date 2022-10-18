@@ -46,13 +46,6 @@ for time_start in np.arange(0, len(open_price), time_step):
 spectrogram = np.array(spectrogram).T
 spec_times = np.array(spec_times)
 
-# plt.subplot(121)
-# plt.plot(freqs, spectrogram[:,2])
-# plt.subplot(122)
-# plt.plot(freqs, spectrogram[:,9])
-# plt.show()
-
-
 # fig, ax = plt.subplots()
 # x2d, y2d = np.meshgrid(spec_times, freqs)
 # pc = ax.pcolormesh(spec_times, freqs, 10 * np.log10(spectrogram + .001), shading='auto')
