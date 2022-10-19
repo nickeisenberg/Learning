@@ -89,7 +89,7 @@ plt.plot(freqs, spectrogram)
 '''
 
 #-Finding-peaks-and-bandwidths-for-butter-filters--
-time = np.linspace(0, 2, len(open_price))
+time = np.linspace(0, 1, len(open_price))
 freq = np.fft.rfftfreq(len(open_price), d = time[1] - time[0])
 fft = abs(np.fft.rfft(open_price))
 
