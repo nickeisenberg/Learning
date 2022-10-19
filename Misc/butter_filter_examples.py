@@ -21,6 +21,9 @@ data_upper = sigs[1] + sigs[2]
 freq = np.fft.rfftfreq(len(time), time[1] - time[0])
 fft_abs = abs(np.fft.rfft(data))
 
+# plt.plot(freq, fft_abs)
+# plt.show()
+
 order, lowcut, highcut = (4, 7, 15)
 
 # ba output
