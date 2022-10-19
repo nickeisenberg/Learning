@@ -19,7 +19,7 @@ x_peak, y_peak = (np.array(x_peak), np.array(y_peak))
 plt.scatter(x_peak, y_peak, marker='x', c='red')
 
 # half = sp.signal.peak_widths(y, peaks, rel_height=.5)[0]
-endpoints = sp.signal.peak_widths(y, peaks, rel_height=.5)[2:]
+endpoints = sp.signal.peak_widths(y, peaks, rel_height=1)[2:]
 end_l = endpoints[0]
 end_r = endpoints[1]
 for l, r in zip(end_l, end_r):
