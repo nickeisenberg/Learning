@@ -7,8 +7,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 stock_info = yf.Ticker('GME')
 
-price_history = stock_info.history(period='2y',
-                                 interval='1d',
+price_history = stock_info.history(period='1mo',
+                                 interval='30m',
                                  actions=False)
 
 price_history['Open'].to_csv('/Users/nickeisenberg/GitRepos/Python_Misc/Misc/Plots/gme_open.csv')
@@ -111,19 +111,23 @@ worthy_peaks = peak_array[:5]
 worthy_peaks = worthy_peaks[worthy_peaks[:,0].argsort()]
 
 #-Various-butter-filters---------------------------
-#-Lowpass-----------------
-# sos_l = sps.butter(9, 25, 'lowpass', fs=len(open_price), output='sos')
-# filt_data_l = sps.sosfiltfilt(sos_l, open_price)
+
+#-Lowpass-
+sos_l = sps.butter(9, 25, 'lowpass', fs=len(open_price), output='sos')
+filt_data_l = sps.sosfiltfilt(sos_l, open_price)
+max_l, min_l = np.max(filt_data_l), np.min(filt_data_l)
+filt_data_l -= min_l
+filt_data_l /= (max_l - min_l)
+implied_noise_l = open_price - filt_data_l
 
 #-Bandpass----------------
 # The lowpass with cutoff 20 removed the signal with freq=17. Not sure why.
-# We can use bandpass filters to look at each of the above mentioned frequencies.
 
 filt_data_bp = []
 implied_noise_bp = []
 for wp in worthy_peaks:
     wpi, wpp, wpw, wpf, wpv = wp
-    lowcut, highcut = wpf - (wpw / 2), wpf + (wpw / 2)
+    lowcut, highcut = wpf - (wpw / 1), wpf + (wpw / 1)
     sos = sps.butter(9, [lowcut, highcut], 'bandpass', fs=len(open_price), output='sos')
     filt_data = sps.sosfiltfilt(sos, open_price)
     max_bp, min_bp = np.max(filt_data), np.min(filt_data)
@@ -135,21 +139,37 @@ for wp in worthy_peaks:
 filt_data_bp = np.array(filt_data_bp)
 implied_noise_bp.append(implied_noise_bp)
 
-# plt.subplot(231)
-# plt.plot(time, open_price)
-# plt.title('gme open price: 1hr int')
-# for i in range(len(filt_data_bp)):
-#     plt.subplot(2,3,i+2)
-#     plt.plot(time, filt_data_bp[i])
-#     plt.title(f'BP for freq: {worthy_peaks[i][3]}')
-# 
-# plt.show()
-
 combined_freqs = np.sum(filt_data_bp, axis=0)
 max_comb, min_comb = np.max(combined_freqs), np.min(combined_freqs)
 combined_freqs -= min_comb
 combined_freqs /= (max_comb - min_comb)
 comb_noise = open_price - combined_freqs
+
+'''
+#-lowpass-vs-bandpass-filter-plots-
+plt.subplot(131)
+plt.plot(time, open_price)
+plt.subplot(132)
+plt.plot(time, filt_data_l, label='lowpass with cutoff 25')
+plt.plot(time, implied_noise_l, label='implied noise')
+plt.legend(loc='upper left')
+plt.subplot(133)
+plt.plot(time, combined_freqs, label='combined prominant freqs')
+plt.plot(time, comb_noise, label='implied noise')
+plt.legend(loc='upper left')
+plt.show()
+
+#-plots-of-indivudual-freqs
+plt.subplot(231)
+plt.plot(time, open_price)
+plt.title('gme open price: 1hr int')
+for i in range(len(filt_data_bp)):
+    plt.subplot(2,3,i+2)
+    plt.plot(time, filt_data_bp[i])
+    plt.title(f'BP for freq: {worthy_peaks[i][3]}')
+plt.show()
+
+#-Plots-of-combined-freqs-and-implied-noise
 plt.subplot(121)
 plt.plot(time, open_price, label='gme open')
 plt.plot(time, combined_freqs, label='combined worth freqs')
@@ -159,5 +179,6 @@ plt.plot(time, comb_noise, label='combined implied noise')
 plt.plot(time, combined_freqs, label='combined worth freqs')
 plt.legend(loc='upper right')
 plt.show()
+'''
 #--------------------------------------------------
 
