@@ -7,18 +7,21 @@ from sklearn.preprocessing import MinMaxScaler
 
 stock_info = yf.Ticker('GME')
 
-price_history = stock_info.history(period='1mo',
-                                 interval='30m',
+price_history = stock_info.history(period='2y',
+                                 interval='1d',
                                  actions=False)
 
-price_history['Open'].to_csv('/Users/nickeisenberg/GitRepos/Python_Misc/Misc/Plots/gme_open.csv')
 open_price = price_history['Open'].values
 
 # Min/Max scaler
-max_open = np.max(open_price)
-min_open = np.min(open_price)
-open_price -= min_open
-open_price /= (max_open - min_open)
+def min_max(data):
+    M, m = np.max(data), np.min(data)
+    data -= m
+    data /= (M - m)
+    return data
+
+# Scaled open prices
+open_price = min_max(open_price)
 
 # Wiener filtered data
 open_price_wiener = sps.wiener(open_price, 9)
@@ -115,9 +118,7 @@ worthy_peaks = worthy_peaks[worthy_peaks[:,0].argsort()]
 #-Lowpass-
 sos_l = sps.butter(9, 25, 'lowpass', fs=len(open_price), output='sos')
 filt_data_l = sps.sosfiltfilt(sos_l, open_price)
-max_l, min_l = np.max(filt_data_l), np.min(filt_data_l)
-filt_data_l -= min_l
-filt_data_l /= (max_l - min_l)
+filt_data_l = min_max(filt_data_l)
 implied_noise_l = open_price - filt_data_l
 
 #-Bandpass----------------
@@ -130,9 +131,7 @@ for wp in worthy_peaks:
     lowcut, highcut = wpf - (wpw / 1), wpf + (wpw / 1)
     sos = sps.butter(9, [lowcut, highcut], 'bandpass', fs=len(open_price), output='sos')
     filt_data = sps.sosfiltfilt(sos, open_price)
-    max_bp, min_bp = np.max(filt_data), np.min(filt_data)
-    filt_data -= min_bp
-    filt_data /= (max_bp - min_bp)
+    filt_data = min_max(filt_data)
     implied_noise = open_price - filt_data
     filt_data_bp.append(filt_data)
     implied_noise_bp.append(implied_noise)
@@ -140,12 +139,9 @@ filt_data_bp = np.array(filt_data_bp)
 implied_noise_bp.append(implied_noise_bp)
 
 combined_freqs = np.sum(filt_data_bp, axis=0)
-max_comb, min_comb = np.max(combined_freqs), np.min(combined_freqs)
-combined_freqs -= min_comb
-combined_freqs /= (max_comb - min_comb)
+combined_freqs = min_max(combined_freqs)
 comb_noise = open_price - combined_freqs
 
-'''
 #-lowpass-vs-bandpass-filter-plots-
 plt.subplot(131)
 plt.plot(time, open_price)
@@ -158,7 +154,7 @@ plt.plot(time, combined_freqs, label='combined prominant freqs')
 plt.plot(time, comb_noise, label='implied noise')
 plt.legend(loc='upper left')
 plt.show()
-
+'''
 #-plots-of-indivudual-freqs
 plt.subplot(231)
 plt.plot(time, open_price)
