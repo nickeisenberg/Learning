@@ -30,7 +30,7 @@ peak_pair = peak_pair[peak_pair[:, 1].argsort()[::-1]]
 worthy_peak_pair = peak_pair[:10][peak_pair[:10][:,0].argsort()]
 worthy_peak_pair = np.delete(worthy_peak_pair, [0, 2, 3, 5], axis=0)
 
-plt.plot(time, gme_2y)
-plt.scatter(worthy_peak_pair[:,2], worthy_peak_pair[:,3], marker='x', c='red')
+plt.plot(time[int(.6 * len(gme_2y)) : ], gme_2y[int(.6 * len(gme_2y)) : ])
+plt.scatter(worthy_peak_pair[:,2][-2:], worthy_peak_pair[:,3][-2:], marker='x', c='red')
 plt.show()
 
