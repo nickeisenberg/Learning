@@ -5,7 +5,8 @@ url = 'https://raw.githubusercontent.com/mwitiderrick/stockprice/master/NSE-TATA
 dataset_train = pd.read_csv(url)
 training_set = dataset_train.iloc[:, 1:2].values
 
-print(training_set[1 : 10])
+ff = None
+print(type(ff))
 
 X_train = []
 y_train = []
@@ -14,7 +15,6 @@ for i in range(60, 65):
     y_train.append(training_set[i, 0])
 X_train, y_train = np.array(X_train), np.array(y_train)
 
-print(X_train)
 
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
