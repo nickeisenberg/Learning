@@ -143,18 +143,18 @@ combined_freqs = min_max(combined_freqs)
 comb_noise = open_price - combined_freqs
 
 #-lowpass-vs-bandpass-filter-plots-
-plt.subplot(131)
-plt.plot(time, open_price)
-plt.subplot(132)
-plt.plot(time, filt_data_l, label='lowpass with cutoff 25')
-plt.plot(time, implied_noise_l, label='implied noise')
-plt.legend(loc='upper left')
-plt.subplot(133)
-plt.plot(time, combined_freqs, label='combined prominant freqs')
-plt.plot(time, comb_noise, label='implied noise')
-plt.legend(loc='upper left')
-plt.show()
-'''
+# plt.subplot(131)
+# plt.plot(time, open_price)
+# plt.subplot(132)
+# plt.plot(time, filt_data_l, label='lowpass with cutoff 25')
+# plt.plot(time, implied_noise_l, label='implied noise')
+# plt.legend(loc='upper left')
+# plt.subplot(133)
+# plt.plot(time, combined_freqs, label='combined prominant freqs')
+# plt.plot(time, comb_noise, label='implied noise')
+# plt.legend(loc='upper left')
+# plt.show()
+
 #-plots-of-indivudual-freqs
 plt.subplot(231)
 plt.plot(time, open_price)
@@ -164,7 +164,7 @@ for i in range(len(filt_data_bp)):
     plt.plot(time, filt_data_bp[i])
     plt.title(f'BP for freq: {worthy_peaks[i][3]}')
 plt.show()
-
+'''
 #-Plots-of-combined-freqs-and-implied-noise
 plt.subplot(121)
 plt.plot(time, open_price, label='gme open')

@@ -18,6 +18,7 @@ for i in range(60, len(training_set_scaled)):
     y_train.append(training_set_scaled[i, 0])
 
 X_train, y_train = np.array(X_train), np.array(y_train)
+
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
 from keras.models import Sequential
@@ -67,3 +68,4 @@ plt.xlabel('Time')
 plt.ylabel('TATA Stock Price')
 plt.legend()
 plt.show()
+
