@@ -3,48 +3,41 @@ import numpy as np
 import matplotlib.pyplot as plt
 import yfinance as yf
 from copy import deepcopy
+from sys import exit
 
 url = 'https://raw.githubusercontent.com/mwitiderrick/stockprice/master/NSE-TATAGLOBAL.csv'
-dataset_train = pd.read_csv(url)
+dataset_train = pd.read_csv(url)[::-1].reset_index(drop=True)
 training_set = dataset_train.iloc[:, 1:2].values
-# print(dataset_train.head())
-print(dataset_train.head(-1))
+print(training_set[:5])
 
-print('--------------------------------------------------')
+dataset_train = dataset_train.set_index(dataset_train['Date'])
+dataset_train = dataset_train.drop('Date', axis=1)
+training_set = dataset_train['Open'].values
+print(training_set[:5])
+exit()
 
 url = 'https://raw.githubusercontent.com/mwitiderrick/stockprice/master/tatatest.csv'
-dataset_test = pd.read_csv(url)
+dataset_test = pd.read_csv(url)[::-1].reset_index(drop=True)
 real_stock_price = dataset_test.iloc[:, 1:2].values
-# print(dataset_test.head())
-print(dataset_test)
 
+dataset_total = pd.concat((dataset_train, dataset_test), axis=0).reset_index(drop=True)
+dataset_total = dataset_total.set_index(dataset_total['Date'])
+dataset_total = dataset_total.drop('Date', axis=1)
+print(dataset_train[:4])
+print(dataset_train[-4:])
 print('--------------------------------------------------')
 
-dataset_total = pd.concat((dataset_train, dataset_test), axis=0)
-print(dataset_total.head(-1))
+tata_info = yf.Ticker('TATACONSUM.NS')
+tata_df = tata_info.history(period='max',
+                            interval='1d',
+                            actions=False).reset_index(drop=False)
+date_start = dataset_train.index.values[0]
+date_end = dataset_train.index.values[-1]
+ind_start = tata_df.loc[tata_df['Date'] == date_start].index.values[0]
+ind_end = tata_df.loc[tata_df['Date'] == date_end].index.values[0]
 
-gme_info = yf.Ticker('GME')
-gme_df = gme_info.history(period='2y',
-                          interval='1h',
-                          actions=False)
+tata_dfsub = tata_df.iloc[ind_start:ind_end+1]
+tata_dfsub = tata_dfsub.set_index('Date')
 
-gme_open = gme_df.iloc[:, 1:2].values
-gme_train = gme_open[ : 2500]
-
-X_train = []
-y_train = []
-
-for i in range(60, len(gme_train)):
-    X_train.append(gme_train[i-60: i, 0])
-    y_train.append(gme_train[i, 0])
-
-X_train, y_train = np.array(X_train), np.array(y_train)
-
-x = np.array([1, 1, 1]).reshape(3, 1)
-x1 = deepcopy(x)
-l = []
-l.append(x[:,0])
-l.append(x1[:,0])
-l = np.array(l)
-
-
+print(tata_dfsub[:4])
+print(tata_dfsub[-4:])

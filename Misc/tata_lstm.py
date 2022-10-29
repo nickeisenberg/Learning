@@ -1,11 +1,14 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sys import exit
 
 url = 'https://raw.githubusercontent.com/mwitiderrick/stockprice/master/NSE-TATAGLOBAL.csv'
-dataset_train = pd.read_csv(url)
+# dataset_train = pd.read_csv(url)
+dataset_train = pd.read_csv(url)[::-1].reset_index(drop=True)
+# print(dataset_train.head())
 training_set = dataset_train.iloc[:, 1:2].values
-
+# print(training_set[:5])
 from sklearn.preprocessing import MinMaxScaler
 sc = MinMaxScaler(feature_range=(0,1))
 training_set_scaled = sc.fit_transform(training_set)
@@ -21,6 +24,7 @@ X_train, y_train = np.array(X_train), np.array(y_train)
 
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 
+'''
 from keras.models import Sequential
 from keras.layers import LSTM, Dropout, Dense
 
@@ -43,13 +47,17 @@ model.add(Dense(units=1))
 model.compile(optimizer='adam', loss='mean_squared_error')
 
 model.fit(X_train, y_train, epochs=100, batch_size=32)
+'''
 
 # Test set
 url = 'https://raw.githubusercontent.com/mwitiderrick/stockprice/master/tatatest.csv'
-dataset_test = pd.read_csv(url)
+dataset_test = pd.read_csv(url)[::-1].reset_index(drop=True)
 real_stock_price = dataset_test.iloc[:, 1:2].values
+dataset_total = pd.concat((dataset_train['Open'], dataset_test['Open']), axis=0).reset_index(drop=True)
 
-dataset_total = pd.concat((dataset_train['Open'], dataset_test['Open']), axis=0)
+# inputs = dataset_total[len(dataset_total) - len(dataset_test) - 60 : ]
+# print(inputs.iloc[-4:])
+
 inputs = dataset_total[len(dataset_total) - len(dataset_test) - 60 : ].values
 inputs = inputs.reshape(-1, 1)
 inputs = sc.transform(inputs)
