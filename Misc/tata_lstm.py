@@ -2,13 +2,27 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sys import exit
+import yfinance as yf
 
+#--------------------------------------------------
 url = 'https://raw.githubusercontent.com/mwitiderrick/stockprice/master/NSE-TATAGLOBAL.csv'
-# dataset_train = pd.read_csv(url)
 dataset_train = pd.read_csv(url)[::-1].reset_index(drop=True)
-# print(dataset_train.head())
 training_set = dataset_train.iloc[:, 1:2].values
-# print(training_set[:5])
+#--------------------------------------------------
+tata_info = yf.Ticker('TATACONSUM.NS')
+tata_df = tata_info.history(period='max',
+                            interval='1d',
+                            actions=False).reset_index(drop=False)
+
+date_start = dataset_train.index.values[0]
+date_end = dataset_train.index.values[-1]
+ind_start = tata_df.loc[tata_df['Date'] == date_start].index.values[0]
+ind_end = tata_df.loc[tata_df['Date'] == date_end].index.values[0]
+
+dataset_train = tata_df.iloc[ind_start:ind_end+1]
+dataset_train = tata_dfsub.set_index('Date')
+#--------------------------------------------------
+
 from sklearn.preprocessing import MinMaxScaler
 sc = MinMaxScaler(feature_range=(0,1))
 training_set_scaled = sc.fit_transform(training_set)
