@@ -39,7 +39,7 @@ model.add(LSTM(units=50))
 model.add(Dropout(0.2))
 model.add(Dense(units=1))
 model.compile(optimizer='adam', loss='mean_squared_error')
-model.fit(X_train, y_train, epochs=1, batch_size=32)
+model.fit(X_train, y_train, epochs=25, batch_size=32)
 
 # Test data
 gme_test = gme_open[2500:]
@@ -60,10 +60,10 @@ print(X_test[-1].reshape(1, len(X_test[-1]), 1))
 predicted_price = model.predict(X_test)
 predicted_price = sc.inverse_transform(predicted_price)
 
-# plt.plot(gme_test, label='real')
-# plt.plot(predicted_price, label='predicted')
-# plt.legend()
-# plt.show()
+plt.subplot(121)
+plt.plot(gme_test, label='real')
+plt.plot(predicted_price, label='predicted')
+plt.legend()
 
 def future_prediction(data=None, model=None, pred_amt=None, lookback=None):
     if len(data) < lookback:
@@ -82,24 +82,28 @@ def future_prediction(data=None, model=None, pred_amt=None, lookback=None):
             inp_data = np.array(data_scaled[data_lb :])
             inp_pred = np.array(pred_vals[ : i])
             inp = np.hstack((inp_data, inp_pred))
-            print(inp_data)
-            print(inp_pred)
-            print(inp)
-            print(inp.reshape((-1,1)))
-            pred = model.predict(inp.reshape((-1, 1)))
-            pred_vals.append(pred)
+            # print(inp_data)
+            # print(inp_pred)
+            # print(inp)
+            # print(inp.reshape((1, len(inp), 1)))
+            pred = model.predict(inp.reshape((1, len(inp), 1)))
+            pred_vals.append(pred[0][0])
 
         if -lookback + i >= 0:
             inp = pred_vals[i - lookback : i]
-            pred = model.predict(inp.reshape((-1,1)))
-            pred_vals.append(pred)
+            pred = model.predict(inp.reshape((1, len(inp), 1)))
+            pred_vals.append(pred[0][0])
 
-    return Mm.inverse_transform(np.array(pred_vals))
+    pred_vals = Mm.inverse_transform(np.array(pred_vals).reshape((-1, 1)))
+    return pred_vals.reshape(-1)
 
 future_price = future_prediction(data=gme_open, model=model, pred_amt=15, lookback=60)
-gme = gme_open[int(len(gme_open)) * .1 : ]
+gme = gme_open[int(len(gme_open) * .9) : ]
 time = len(gme) + 15
-time = np.arange(0, 1, time)
+time = np.linspace(0, 1, time)
+
+plt.subplot(122)
 plt.plot(time[ : len(gme)], gme)
 plt.plot(time[-15 : ], future_price)
+
 plt.show()

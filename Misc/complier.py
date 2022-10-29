@@ -14,7 +14,6 @@ dataset_train = dataset_train.set_index(dataset_train['Date'])
 dataset_train = dataset_train.drop('Date', axis=1)
 training_set = dataset_train['Open'].values
 print(training_set[:5])
-exit()
 
 url = 'https://raw.githubusercontent.com/mwitiderrick/stockprice/master/tatatest.csv'
 dataset_test = pd.read_csv(url)[::-1].reset_index(drop=True)
@@ -31,6 +30,9 @@ tata_info = yf.Ticker('TATACONSUM.NS')
 tata_df = tata_info.history(period='max',
                             interval='1d',
                             actions=False).reset_index(drop=False)
+print('---')
+print(tata_df['Open'].values.shape)
+print('---')
 date_start = dataset_train.index.values[0]
 date_end = dataset_train.index.values[-1]
 ind_start = tata_df.loc[tata_df['Date'] == date_start].index.values[0]
