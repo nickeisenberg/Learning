@@ -1,5 +1,10 @@
 import numpy as np
+from scipy.spatial.distance import cdist
 
-ar = np.array([[1,2,3],[4,5,6]])
-print(ar)
-print(np.sum(ar, axis=0))
+x0 = np.ones((2,2))
+x1 = np.ones((2,2)) * np.array([1, 2]).reshape((-1,1))
+
+print(x0)
+print(x1)
+
+print(cdist(x0, x1, metric='euclidean'))
