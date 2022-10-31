@@ -1,17 +1,14 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import yfinance as yf
-from copy import deepcopy
-from sys import exit
 
-gme_info = yf.Ticker('GME')
-gme_df = gme_info.history(period='2y',
-                          interval='1h',
-                          actions=False)
+# gme_info = yf.Ticker('GME')
+# gme_df = gme_info.history(period='2y',
+#                           interval='1h',
+#                           actions=False)
 
-gme_df.to_csv('/Users/nickeisenberg/GitRepos/Python_Misc/MinimalWorkingExamples/DataSets/gme_df.csv')
-exit()
+gme_df = pd.read_csv('/Users/nickeisenberg/GitRepos/Python_Misc/MinimalWorkingExamples/DataSets/gme_df.csv')
 gme_open = gme_df['Open'].values
 
 gme_train = gme_open[ : 2500]
@@ -29,8 +26,24 @@ for i in range(60, len(gme_train_scaled)):
 X_train, y_train = np.array(X_train), np.array(y_train)
 X_train = X_train.reshape((X_train.shape[0], X_train.shape[1], 1))
 
-from tensorflow.keras.models import load_model
-model = load_model('/Users/nickeisenberg/GitRepos/Python_Misc/MinimalWorkingExamples/Models/gme_lstm')
+
+from keras.models import Sequential
+from keras.layers import LSTM, Dropout, Dense
+
+model = Sequential()
+model.add(LSTM(units=50, return_sequences=True, input_shape=(X_train.shape[1], 1)))
+model.add(Dropout(0.2))
+model.add(LSTM(units=50, return_sequences=True))
+model.add(Dropout(0.2))
+model.add(LSTM(units=50, return_sequences=True))
+model.add(Dropout(0.2))
+model.add(LSTM(units=50))
+model.add(Dropout(0.2))
+model.add(Dense(units=1))
+model.compile(optimizer='adam', loss='mean_squared_error')
+model.fit(X_train, y_train, epochs=25, batch_size=32)
+
+model.save('/Users/nickeisenberg/GitRepos/Python_Misc/MinimalWorkingExamples/Models/gme_lstm')
 
 # Test data
 gme_test = gme_open[2500:]
@@ -56,3 +69,4 @@ plt.plot(gme_test, label='real')
 plt.plot(predicted_price, label='predicted')
 plt.legend()
 plt.show()
+
