@@ -1,10 +1,9 @@
 import numpy as np
 from scipy.spatial.distance import cdist
+from scipy.linalg import eig
+from sklearn.preprocessing import normalize
 
-x0 = np.ones((2,2))
-x1 = np.ones((2,2)) * np.array([1, 2]).reshape((-1,1))
 
-print(x0)
-print(x1)
+x = np.array([1, 2, 3])
+print(1/x)
 
-print(cdist(x0, x1, metric='euclidean'))
