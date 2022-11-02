@@ -1,16 +1,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+from copy import deepcopy
 
-# print('')
-# print([1, 2, 3, 4])
-# print([5, 6, 7, 8])
+x = np.random.randn(100, 20000)
+print(np.mean(x))
 
-time = np.linspace(0, 1, 100)
-data = np.sin(2 * np.pi * time)
+xm = deepcopy(x)
+med_ct = 0
 
-plt.plot(time, data)
-plt.show()
+for i in range(1, 200):
+    xm += np.roll(x, i, axis=1)
+    xm += np.roll(x, -i, axis=1)
+    med_ct += 2
 
-print([1,1,1])
-print([1,1,1])
-print([1,1,1])
+xm /= med_ct
+
+print(np.mean(x - xm))
+

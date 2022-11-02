@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.datasets import make_blobs
+from sys import exit
 
 n_samples = 1500
 random_state = 170
@@ -54,8 +55,15 @@ y_pred_sc = KMeans(n_clusters=3).fit_predict(normalize(Usubset))
 # 3) consider the matrix formed by the first k eigenvectorsa
 # 4) cluster the graph using this matrix by KMeans
 w, v = eig(L_sym)
-eigen_mat = v[:, 0:3].real
-y_pred_sc_eigen = KMeans(n_clusters=3).fit_predict(normalize(eigen_mat))
+v =  v[:, w.argsort()]
+w =  w[w.argsort()]
+U_Lsym = v[:, 0:3].real
+
+normalization_constants = np.sqrt(np.sum(np.square(U_Lsym), axis=1)).reshape((-1,1))
+U_Lsym = np.multiply(normalization_constants, U_Lsym)
+
+
+y_pred_sc_eigen = KMeans(n_clusters=3).fit_predict(normalize(U_Lsym))
 
 plt.figure(figsize=(8,4))
 plt.subplot(131)
@@ -67,6 +75,6 @@ plt.title('spectral cluster with SVD')
 
 plt.subplot(133)
 plt.scatter(X_aniso[:, 0], X_aniso[:, 1], c=y_pred_sc_eigen, s=20)
-plt.title('spectral cluster with the wikipedia algorithim')
+plt.title('spectral cluster with Lsym eigen vec\nNg, Jordan and Weiss (2002)')
 
 plt.show()

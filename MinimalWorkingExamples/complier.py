@@ -1,9 +1,11 @@
 import numpy as np
-from scipy.spatial.distance import cdist
-from scipy.linalg import eig
-from sklearn.preprocessing import normalize
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
 
+Mm = MinMaxScaler(feature_range=(0,1))
 
-x = np.array([1, 2, 3])
-print(1/x)
+data=np.array([1,2,3,4]).reshape((-1,1))
+data_scaled = Mm.fit_transform(data)
+
+print(Mm.data_min_)
 
