@@ -1,11 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
+from scipy.spatial import distance
 
-Mm = MinMaxScaler(feature_range=(0,1))
-
-data=np.array([1,2,3,4]).reshape((-1,1))
-data_scaled = Mm.fit_transform(data)
-
-print(Mm.data_min_)
-
+x = np.array([[1,1],[2,2]])
+print(distance.cdist(x, x))
