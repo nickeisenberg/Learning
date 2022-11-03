@@ -20,6 +20,12 @@ time = np.linspace(0, 1, len(gme_2y)).reshape((-1,1))
 low = int(.9182 * len(time))
 up = int(.9835 * len(time))
 
+# print((len(time) - up) / 7.5)
+# print((up - low) / 7.5)
+# 
+# plt.plot(time, gme_scaled)
+# plt.show()
+
 gme_pat = gme_scaled[low:up]
 gme_pat_norm = gme_pat / np.sqrt(np.sum(np.multiply(gme_pat, gme_pat)))
 pat_len = len(gme_pat_norm)
