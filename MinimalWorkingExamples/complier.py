@@ -1,5 +1,7 @@
 import numpy as np
-from scipy.spatial import distance
+import matplotlib.pyplot as plt
 
-x = np.array([[1,1],[2,2]])
-print(distance.cdist(x, x))
+x = np.array([1, 2, 3])
+print(x)
+x[2] = 5
+print(x)
