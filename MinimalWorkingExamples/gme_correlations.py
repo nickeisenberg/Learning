@@ -1,36 +1,46 @@
+from sys import exit
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import yfinance as yf
 import scipy.signal as sps
+from sklearn.preprocessing import MinMaxScaler
 
-gme_info = yf.Ticker('GME')
+gme_2y = pd.read_csv('/Users/nickeisenberg/GitRepos/Python_Misc/MinimalWorkingExamples/DataSets/gme_11_3_22.csv')
+gme_2y = gme_2y['Open'].values.reshape((-1,1))
+Mm = MinMaxScaler(feature_range=(0,1))
+gme_scaled = Mm.fit_transform(gme_2y)
 
-gme_df_2y = gme_info.history(period='2y',
-                               interval='1h',
-                               actions=False)
+time = np.linspace(0, 1, len(gme_2y)).reshape((-1,1))
 
-gme_df_1y = gme_info.history(period='1y',
-                               interval='1h',
-                               actions=False)
-gme_2y = gme_df_2y['Open'].values
-time = np.linspace(0, 1, len(gme_2y))
+low = int(.9182 * len(time))
+up = int(.9835 * len(time))
 
-# find peaks and proiminces 
-peak_idx, _ = sps.find_peaks(gme_2y)
-prom = sps.peak_prominences(gme_2y, peak_idx)
-peak_dom = np.array([time[int(i)] for i in peak_idx])
-peak_val = np.array([gme_2y[int(i)] for i in peak_idx])
+gme_pat = gme_scaled[low:up]
+gme_pat_norm = gme_pat / np.sqrt(np.sum(np.multiply(gme_pat, gme_pat)))
+pat_len = len(gme_pat_norm)
 
-# worthy peaks
-peak_pair = np.array([[pid, pp, pd, pv]
-                      for pid, pp, pd, pv in zip(peak_idx, prom[0], peak_dom, peak_val)])
-peak_pair = peak_pair[peak_pair[:, 1].argsort()[::-1]]
+corr_scores = []
+for i in range(0, low + 1):
+    gme_ref = gme_scaled[i : i + pat_len]
+    gme_ref_norm = gme_ref / np.sqrt(np.sum(np.multiply(gme_ref, gme_ref)))
+    score = np.sqrt(np.sum(np.multiply(gme_ref_norm, gme_pat_norm)))
+    corr_scores.append([i, score])
+corr_scores = np.array(corr_scores)
+corr_scores = corr_scores[corr_scores[:, 1].argsort()][::-1]
 
-worthy_peak_pair = peak_pair[:10][peak_pair[:10][:,0].argsort()]
-worthy_peak_pair = np.delete(worthy_peak_pair, [0, 2, 3, 5], axis=0)
+top_scores = corr_scores[::int(pat_len/2)][:10]
+ind = int(top_scores[:, 0][1])
 
-plt.plot(time[int(.6 * len(gme_2y)) : ], gme_2y[int(.6 * len(gme_2y)) : ])
-plt.scatter(worthy_peak_pair[:,2][-2:], worthy_peak_pair[:,3][-2:], marker='x', c='red')
+corr_past = gme_2y[ind : ind + pat_len]
+time_past = time[ind : ind + pat_len]
+corr_fut = gme_2y[ind + pat_len : ind + 2 * pat_len]
+time_fut = time[ind + pat_len : ind + 2 * pat_len]
+
+plt.subplot(121)
+plt.plot(time_past, corr_past)
+plt.plot(time_fut, corr_fut)
+
+plt.subplot(122)
+plt.plot(time, gme_2y)
 plt.show()
-
