@@ -42,7 +42,8 @@ for i in range(0, low + 1):
     corr_scores.append([i, score])
 corr_scores = np.array(corr_scores)
 corr_scores = corr_scores[corr_scores[:, 1].argsort()][::-1]
-
+print(corr_scores[:50])
+exit()
 # Normalized dot product for the def of corr
 # gme_pat_norm = gme_pat / np.sqrt(np.sum(np.multiply(gme_pat, gme_pat)))
 # corr_scores = []
@@ -67,7 +68,7 @@ for i in corr_scores[:, 0]:
     for ts in top_scores:
         dists_i.append(np.abs(ts - i))
     dists_i = np.array(dists_i)
-    if np.min(dists_i) >= pat_len / 2: # chose how close each start point can be
+    if np.min(dists_i) >= pat_len / 8: # chose how close each start point can be
         top_scores.append(i)
 
     if len(top_scores) == 8:
