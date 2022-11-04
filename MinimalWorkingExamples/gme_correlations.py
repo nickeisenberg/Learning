@@ -27,17 +27,32 @@ up = int(.9835 * len(time))
 # plt.show()
 
 gme_pat = gme_scaled[low:up]
-gme_pat_norm = gme_pat / np.sqrt(np.sum(np.multiply(gme_pat, gme_pat)))
-pat_len = len(gme_pat_norm)
+pat_len = len(gme_pat)
 
+def pearson_corr(x, y):
+    ux, uy = np.mean(x), np.mean(y)
+    x_cen, y_cen = x - ux, y - uy
+    return np.dot(x_cen, y_cen) / (np.sqrt(np.sum(np.square(x_cen))) * np.sqrt(np.sum(np.square(y_cen))))
+
+# Pearson correlation
 corr_scores = []
 for i in range(0, low + 1):
     gme_ref = gme_scaled[i : i + pat_len]
-    gme_ref_norm = gme_ref / np.sqrt(np.sum(np.multiply(gme_ref, gme_ref)))
-    score = np.sqrt(np.sum(np.multiply(gme_ref_norm, gme_pat_norm)))
+    score = pearson_corr(gme_pat.reshape(-1), gme_ref.reshape(-1))
     corr_scores.append([i, score])
 corr_scores = np.array(corr_scores)
 corr_scores = corr_scores[corr_scores[:, 1].argsort()][::-1]
+
+# Normalized dot product for the def of corr
+# gme_pat_norm = gme_pat / np.sqrt(np.sum(np.multiply(gme_pat, gme_pat)))
+# corr_scores = []
+# for i in range(0, low + 1):
+#     gme_ref = gme_scaled[i : i + pat_len]
+#     gme_ref_norm = gme_ref / np.sqrt(np.sum(np.multiply(gme_ref, gme_ref)))
+#     score = np.sqrt(np.sum(np.multiply(gme_ref_norm, gme_pat_norm)))
+#     corr_scores.append([i, score])
+# corr_scores = np.array(corr_scores)
+# corr_scores = corr_scores[corr_scores[:, 1].argsort()][::-1]
 
 top_scores = [] # index for the start of the correlation reference
 for i in corr_scores[:, 0]:
@@ -58,35 +73,35 @@ for i in corr_scores[:, 0]:
     if len(top_scores) == 8:
         break
 
-for i in range(8):
-    ind = int(top_scores[i])
-    corr_past = gme_2y[ind : ind + pat_len]
-    time_past = time[ind : ind + pat_len]
-    corr_fut = gme_2y[ind + pat_len : ind + 3 * pat_len]
-    time_fut = time[ind + pat_len : ind + 3 * pat_len]
-    plt.subplot(3, 3, i+1)
-    plt.plot(time_past, corr_past, c='blue')
-    plt.plot(time_fut, corr_fut, c='darkorange')
-
-plt.subplot(339)
-plt.plot(time[low:up], gme_2y[low:up], c='green')
-plt.plot(time[up:], gme_2y[up:], c='darkorange')
-
-# for i in range(5):
+# for i in range(8):
 #     ind = int(top_scores[i])
 #     corr_past = gme_2y[ind : ind + pat_len]
 #     time_past = time[ind : ind + pat_len]
 #     corr_fut = gme_2y[ind + pat_len : ind + 3 * pat_len]
 #     time_fut = time[ind + pat_len : ind + 3 * pat_len]
-#     plt.subplot(2, 3, i+1)
-#     plt.title(f'Start : {dates[ind]}\nEnd : {dates[ind + 3 * pat_len]}\n Blue to Green Corr : {corr_scores[ind][1]}')
+#     plt.subplot(3, 3, i+1)
 #     plt.plot(time_past, corr_past, c='blue')
 #     plt.plot(time_fut, corr_fut, c='darkorange')
 # 
-# plt.subplot(236)
-# plt.title(f'Start : {dates[low]}\nEnd : {dates[-1]}\nGreen : Pattern for correlation')
+# plt.subplot(339)
 # plt.plot(time[low:up], gme_2y[low:up], c='green')
 # plt.plot(time[up:], gme_2y[up:], c='darkorange')
+
+for i in range(5):
+    ind = int(top_scores[i])
+    corr_past = gme_2y[ind : ind + pat_len]
+    time_past = time[ind : ind + pat_len]
+    corr_fut = gme_2y[ind + pat_len : ind + 3 * pat_len]
+    time_fut = time[ind + pat_len : ind + 3 * pat_len]
+    plt.subplot(2, 3, i+1)
+    plt.title(f'Start : {dates[ind]}\nEnd : {dates[ind + 3 * pat_len]}\n Blue to Green Corr : {corr_scores[ind][1]}')
+    plt.plot(time_past, corr_past, c='blue')
+    plt.plot(time_fut, corr_fut, c='darkorange')
+
+plt.subplot(236)
+plt.title(f'Start : {dates[low]}\nEnd : {dates[-1]}\nGreen : Pattern for correlation')
+plt.plot(time[low:up], gme_2y[low:up], c='green')
+plt.plot(time[up:], gme_2y[up:], c='darkorange')
 
 plt.tight_layout()
 plt.suptitle('Movement of GME following correlated price movements\n\
