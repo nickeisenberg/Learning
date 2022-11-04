@@ -55,56 +55,52 @@ corr_scores = corr_scores[corr_scores[:, 1].argsort()][::-1]
 # corr_scores = corr_scores[corr_scores[:, 1].argsort()][::-1]
 
 top_scores = [] # index for the start of the correlation reference
-for i in corr_scores[:, 0]:
-    if np.abs(i -low) < pat_len:
+for i in range(len(corr_scores[:, 0])):
+    val_ind = corr_scores[i][0]
+    if np.abs(val_ind -low) < pat_len:
         continue
 
     if len(top_scores) == 0:
-        top_scores.append(i)
+        top_scores.append([val_ind, corr_scores[i][1]])
         continue
 
     dists_i = []
     for ts in top_scores:
-        dists_i.append(np.abs(ts - i))
+        dists_i.append(np.abs(ts[0] - val_ind))
     dists_i = np.array(dists_i)
-    if np.min(dists_i) >= pat_len / 8: # chose how close each start point can be
-        top_scores.append(i)
-
-    if len(top_scores) == 8:
+    if np.min(dists_i) >= pat_len / 5: # chose how close each start point can be
+        top_scores.append([val_ind, corr_scores[i][1]])
+    if len(top_scores) == 9:
         break
-
-# for i in range(8):
-#     ind = int(top_scores[i])
-#     corr_past = gme_2y[ind : ind + pat_len]
-#     time_past = time[ind : ind + pat_len]
-#     corr_fut = gme_2y[ind + pat_len : ind + 3 * pat_len]
-#     time_fut = time[ind + pat_len : ind + 3 * pat_len]
-#     plt.subplot(3, 3, i+1)
-#     plt.plot(time_past, corr_past, c='blue')
-#     plt.plot(time_fut, corr_fut, c='darkorange')
-# 
-# plt.subplot(339)
-# plt.plot(time[low:up], gme_2y[low:up], c='green')
-# plt.plot(time[up:], gme_2y[up:], c='darkorange')
+top_scores = np.array(top_scores)
 
 for i in range(5):
-    ind = int(top_scores[i])
+    ind = int(top_scores[i][0])
     corr_past = gme_2y[ind : ind + pat_len]
     time_past = time[ind : ind + pat_len]
     corr_fut = gme_2y[ind + pat_len : ind + 3 * pat_len]
     time_fut = time[ind + pat_len : ind + 3 * pat_len]
     plt.subplot(2, 3, i+1)
-    plt.title(f'Start : {dates[ind]}\nEnd : {dates[ind + 3 * pat_len]}\n Blue to Green Corr : {corr_scores[ind][1]}')
+    plt.title(f'Start : {dates[ind]}\nEnd : {dates[ind + 3 * pat_len]}\n Blue to Green Corr : {top_scores[i][1]}')
     plt.plot(time_past, corr_past, c='blue')
     plt.plot(time_fut, corr_fut, c='darkorange')
 
+# for i in range(5):
+#     ind = int(top_scores[i][0])
+#     corr_past = gme_2y[ind : ind + pat_len]
+#     time_past = time[ind : ind + pat_len]
+#     corr_fut = gme_2y[ind + pat_len : ind + 3 * pat_len]
+#     time_fut = time[ind + pat_len : ind + 3 * pat_len]
+#     plt.subplot(2, 3, i+1)
+#     plt.title(f'Start : {dates[ind]}\nEnd : {dates[ind + 3 * pat_len]}\n Blue to Green Corr : {top_scores[i][1]}')
+#     plt.plot(time_past, corr_past, c='blue')
+#     plt.plot(time_fut, corr_fut, c='darkorange')
+# 
 plt.subplot(236)
 plt.title(f'Start : {dates[low]}\nEnd : {dates[-1]}\nGreen : Pattern for correlation')
 plt.plot(time[low:up], gme_2y[low:up], c='green')
 plt.plot(time[up:], gme_2y[up:], c='darkorange')
 
 plt.tight_layout()
-plt.suptitle('Movement of GME following correlated price movements\n\
-             Blue plots are highly correlated with the green plot\n\
-             Orange plots are the subsequent price movements')
+plt.suptitle('Movement of GME following correlated price movements')
 plt.show()
