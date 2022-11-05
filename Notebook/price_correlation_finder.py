@@ -78,6 +78,7 @@ class Correlation:
             if len(top_scores) == 9:
                 break
         top_scores = np.array(top_scores)
+        self.top_scores = top_scores
 
         return top_scores
 
@@ -90,6 +91,7 @@ if __name__ == '__main__':
                                pat_end=3462)
 
     print(top_scores)
+    print(gme.top_scores)
 
 
 
