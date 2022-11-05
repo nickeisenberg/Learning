@@ -21,6 +21,7 @@ if __name__ == '__main__':
     print(f'the input data: {data}')
 
     Mm.fit(data)
+    print(Mm.m, Mm.M)
     data_scaled = Mm.transform()
     original_data = Mm.inverse_transform()
 
