@@ -43,7 +43,7 @@ for i in range(0, low + 1):
 corr_scores = np.array(corr_scores)
 corr_scores = corr_scores[corr_scores[:, 1].argsort()][::-1]
 
-# Normalized dot product for the def of corr
+#-Normalized-dot-product-for-the-def-of-corr--
 # gme_pat_norm = gme_pat / np.sqrt(np.sum(np.multiply(gme_pat, gme_pat)))
 # corr_scores = []
 # for i in range(0, low + 1):
@@ -74,29 +74,21 @@ for i in range(len(corr_scores[:, 0])):
         break
 top_scores = np.array(top_scores)
 
-for i in range(5):
+print(top_scores)
+
+exit()
+for i in range(8):
     ind = int(top_scores[i][0])
     corr_past = gme_2y[ind : ind + pat_len]
     time_past = time[ind : ind + pat_len]
     corr_fut = gme_2y[ind + pat_len : ind + 3 * pat_len]
     time_fut = time[ind + pat_len : ind + 3 * pat_len]
-    plt.subplot(2, 3, i+1)
+    plt.subplot(3, 3, i+1)
     plt.title(f'Start : {dates[ind]}\nEnd : {dates[ind + 3 * pat_len]}\n Blue to Green Corr : {top_scores[i][1]}')
     plt.plot(time_past, corr_past, c='blue')
     plt.plot(time_fut, corr_fut, c='darkorange')
 
-# for i in range(5):
-#     ind = int(top_scores[i][0])
-#     corr_past = gme_2y[ind : ind + pat_len]
-#     time_past = time[ind : ind + pat_len]
-#     corr_fut = gme_2y[ind + pat_len : ind + 3 * pat_len]
-#     time_fut = time[ind + pat_len : ind + 3 * pat_len]
-#     plt.subplot(2, 3, i+1)
-#     plt.title(f'Start : {dates[ind]}\nEnd : {dates[ind + 3 * pat_len]}\n Blue to Green Corr : {top_scores[i][1]}')
-#     plt.plot(time_past, corr_past, c='blue')
-#     plt.plot(time_fut, corr_fut, c='darkorange')
-# 
-plt.subplot(236)
+plt.subplot(339)
 plt.title(f'Start : {dates[low]}\nEnd : {dates[-1]}\nGreen : Pattern for correlation')
 plt.plot(time[low:up], gme_2y[low:up], c='green')
 plt.plot(time[up:], gme_2y[up:], c='darkorange')
