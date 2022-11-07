@@ -4,7 +4,7 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import yfinance as yf
 
-# improve this to allow for historical volitility from a given time range
+# need to remove the gmt offset that comes with yfinance date/time outputs
 class Volitility:
 
     def __init__(self, ticker=None, data=None, data_path=None):
@@ -12,7 +12,7 @@ class Volitility:
         self.data_path = data_path
         self.data = data
 
-    def historical(self, period=None, interval=None, method=None):
+    def historical(self, method=None, s_date=0, e_date=-1, period=None, interval=None):
 
         data = self.data
         data_path = self.data_path
@@ -29,6 +29,13 @@ class Volitility:
                                              interval=interval,
                                              prepost=prepost,
                                              actions=False)
+
+        if isinstance(s_date, str):
+            s_date = data.index[data['Date'] == s_date].values[0]
+        if isinstance(e_date, str):
+            e_date = data.index[data['Date'] == e_date].values[0]
+
+        data = data.iloc[s_date : e_date]
 
         if method == 'open':
             open_p = data['Open'].values
@@ -136,20 +143,24 @@ class Correlation:
 
 if __name__ == '__main__':
 
+    print('-----Testing-----')
     data_path='/Users/nickeisenberg/GitRepos/Python_Misc/Notebook/DataSets/gme_11_3_22.csv'
     df = pd.read_csv(data_path)
+    df.rename(columns={df.columns[0] : 'Date'}, inplace=True)
+
     dfhead = df.iloc[:10]
 
-    gme_vol = Volitility(data_path=data_path)
-    gme_vol_open = gme_vol.historical(method='open')
+    e_date ='2020-11-05 09:30:00-05:00'
+    gme_vol = Volitility(data=df)
+    gme_vol_open = gme_vol.historical(e_date=e_date, method='open')
 
     gme_vol_head = Volitility(data=dfhead)
     gme_vol__head_open = gme_vol_head.historical(method='open')
 
     print(gme_vol.volitility)
     print(gme_vol.mean_return)
-    print('------')
-    print(dfhead)
+    print(gme_vol.dt)
+    print('----------------')
     print(gme_vol_head.volitility)
     print(gme_vol_head.mean_return)
     print(gme_vol_head.dt)
