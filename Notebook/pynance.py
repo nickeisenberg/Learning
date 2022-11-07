@@ -4,6 +4,58 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import yfinance as yf
 
+# improve this to allow for historical volitility from a given time range
+class Volitility:
+
+    def __init__(self, ticker=None, data=None, data_path=None):
+        self.ticker = ticker
+        self.data_path = data_path
+        self.data = data
+
+    def historical(self, period=None, interval=None, method=None):
+
+        data = self.data
+        data_path = self.data_path
+        ticker = self.ticker
+
+        if isinstance(data_path, str):
+            data = pd.read_csv(data_path)
+
+        elif isinstance(data, pd.DataFrame):
+            data = self.data
+
+        else:
+            data = yf.Ticker(ticker).history(period=period,
+                                             interval=interval,
+                                             prepost=prepost,
+                                             actions=False)
+
+        if method == 'open':
+            open_p = data['Open'].values
+            self.dt = np.diff(open_p)
+            self.mean_return = np.mean(self.dt)
+            self.volitility = np.std(self.dt)
+
+        elif method == 'close':
+            close_p = data['Close'].values
+            self.dt = np.diff(close_p)
+            self.mean_return = np.mean(self.dt)
+            self.volitility = np.std(self.dt)
+
+        elif method == 'hl':
+            high_p = data['High'].values
+            low_p = data['Low'].values
+            self.dt = high_p - low_p
+            self.mean_return = np.mean(self.dt)
+            self.volitility = np.std(self.dt)
+
+        return np.std(self.dt)
+
+    def implied(self):
+
+        # find a way to get options data and black-scholes formula 
+        return None
+
 def pearson_corr(x, y):
     ux, uy = np.mean(x), np.mean(y)
     x_cen, y_cen = x - ux, y - uy
@@ -85,18 +137,22 @@ class Correlation:
 if __name__ == '__main__':
 
     data_path='/Users/nickeisenberg/GitRepos/Python_Misc/Notebook/DataSets/gme_11_3_22.csv'
-    gme = Correlation(data_path=data_path)
+    df = pd.read_csv(data_path)
+    dfhead = df.iloc[:10]
 
-    top_scores = gme.find_corr(pat_start=3232,
-                               pat_end=3462)
+    gme_vol = Volitility(data_path=data_path)
+    gme_vol_open = gme_vol.historical(method='open')
 
-    print(top_scores)
-    print(gme.top_scores)
+    gme_vol_head = Volitility(data=dfhead)
+    gme_vol__head_open = gme_vol_head.historical(method='open')
 
-
-
-
-
+    print(gme_vol.volitility)
+    print(gme_vol.mean_return)
+    print('------')
+    print(dfhead)
+    print(gme_vol_head.volitility)
+    print(gme_vol_head.mean_return)
+    print(gme_vol_head.dt)
 
 
 
