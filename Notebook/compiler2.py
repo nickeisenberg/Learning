@@ -1,9 +1,19 @@
-import numpy as np
+import pandas as pd
 
-x = np.empty(0)
-x = np.append(x, [1, 2.4]).reshape((1,2))
-print(np.abs(x[:,0] - 1))
-print('')
+dic = {'a' : [1, 2, 3],
+       'b' : [ 2]}
 
-x = np.vstack((x, [2, 4.4]))
-print(x)
+print(dic)
+
+print(dic.items())
+
+for k, v in dic.items():
+    print(k)
+    print(v)
+
+df = pd.DataFrame(dict([ (k, pd.Series(v)) for k, v in dic.items()]))
+
+print(df)
+
+
+

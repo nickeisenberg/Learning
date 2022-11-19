@@ -28,14 +28,13 @@ signals are the same but delayed then the shift is the amount of time the signal
 '''
 
 import numpy as np
+np.set_printoptions(suppress=True)
 from correlation import circ_cross_corr
 from copy import copy
 
-pat = np.random.randn(5)
-ref1 = copy(pat[1:4])
-ref1 = np.concatenate([ref1, [0, 0]])
-pat[0] = 0
-pat[-1] = 0
+pat = np.array([1,2,3])
+ref1 = copy(pat[:])
+ref1 = np.concatenate([[0, 0, 1,2,3], [0, 0,0,0,0,]])
 Ref1 = np.hstack([np.zeros(len(pat)), ref1])
 Pat1 = np.hstack([pat, np.zeros(len(ref1))])
 
@@ -67,9 +66,9 @@ print(f'Scores_indicies[arg_rfft] : {scores_indicies[arg_rfft]}')
 print('-------------------------')
 
 print(f'Using ifft(conj(fft(Pat1)) * fft(Ref1))...')
-scores1_rfft_fft = np.round(np.fft.ifft(np.conj(np.fft.fft(Pat1)) * np.fft.fft(Ref1)).real, 3)
-print(f'Scores\n{scores1_rfft_fft}')
-arg_fft = np.argmax(scores1_rfft_fft)
+scores1_fft_fft = np.round(np.fft.ifft(np.conj(np.fft.fft(Pat1)) * np.fft.fft(Ref1)).real, 3)
+print(f'Scores\n{scores1_fft_fft}')
+arg_fft = np.argmax(scores1_fft_fft)
 print(f'Arg max : {arg_fft}')
 print(f'Scores_indicies[arg_fft] : {scores_indicies[arg_fft]}')
 print('-------------------------')
