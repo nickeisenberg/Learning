@@ -14,8 +14,12 @@ x.append(shot0)
 x.append(shot1)
 
 print('--------------------------------------------------')
-print(pd.DataFrame(x))
+df = pd.DataFrame(x)
+print(df)
 
 print('--------------------------------------------------')
 print(pd.DataFrame(x).T)
 
+print('--------------------------------------------------')
+print(type(df.columns))
+print(pd.Series(np.ones(3), index=df.columns, name='shot'))
