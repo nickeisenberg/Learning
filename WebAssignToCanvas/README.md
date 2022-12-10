@@ -1,3 +1,5 @@
+This repo is useless unless you teach math at Auburn and are using WebAssign...
+
 In this folder, you will see three csv files: webassignNAMELESS, canvasNAMELESS and webassignCLEAN. 
 
 This script will take both of the NAMELESS files and create a cleaner version that alloes submission back to canvas much easier.
