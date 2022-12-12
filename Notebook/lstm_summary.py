@@ -31,6 +31,12 @@ model.compile(optimizer='adam',
 history = model.fit(dataset,
                     epochs=10)
 
+path = '/Users/nickeisenberg/GitRepos/Python_Notebook/Notebook/Models'
+name = 'lstm_sin.keras'
+model.save(f'{path}/{name}')
+
+model = keras.models.load_model(f'{path}/{name}')
+
 test_time = np.linspace(1, 11, 10000)
 test_data = np.sin(2 * np.pi * 5 * test_time)
 
@@ -74,6 +80,3 @@ plt.title('A LSTM model trained to predict f(x) = Sin(x)\n\
 plt.legend(loc='lower right')
 plt.xlim(0.9, 3)
 plt.show()
-
-
-
