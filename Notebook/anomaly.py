@@ -4,7 +4,7 @@ from tensorflow import keras
 
 np.random.seed(1)
 
-time = np.linspace(0, 3, 1000)
+time = np.linspace(0, 5, 5000)
 
 def bump(x, s, plateau=False):
     if plateau:
@@ -13,39 +13,51 @@ def bump(x, s, plateau=False):
         b = np.exp(- (x - s) ** 2 / .005) / np.sqrt(.005)
     return b
 
-data = np.zeros(1000)
-for i in np.arange(0, 3, 1 / 3)[1:]:
-    if i == 1.:
-        data += bump(time, 1, plateau=True)
-    else:
-        data += bump(time, i)
+train_data = np.zeros(5000)
+for i in np.arange(0, 5, 1 / 2)[1:]:
+    train_data += bump(time, i)
+train_data /= max(train_data)
+train_data += np.sqrt(1 / 5000) * np.random.normal(0, 1, size=5000)
 
-data /= max(data)
-anomoly = bump(time, 2)
-anomoly /= 25
-data += anomoly
+seq_len=748
 
-plt.plot(data)
+plt.plot(time[: seq_len], train_data[:seq_len])
+plt.plot(time[seq_len:], train_data[seq_len:])
 plt.show()
 
-seq_len=50
-train_targets = keras.utils.timeseries_dataset_from_array(
-        data=data,
+anomaly = bump(time, 3) / max(bump(time, 3))
+anomalous_data = train_data + 1 / 2 * anomaly
+
+plt.plot(anomalous_data)
+plt.show()
+
+train_inputs = keras.utils.timeseries_dataset_from_array(
+        data=train_data,
         targets=None,
         sequence_length=seq_len,
         batch_size=None)
+train_inputs = np.array([np.array(inp) for inp in train_inputs])
 
-train_targets = np.array([np.array(tar) for tar in targets])
+train_inputs = train_inputs.reshape(
+        train_inputs.shape[0], train_inputs.shape[1], 1)
 
-# train_inputs = []
-# for tar in targets:
-#     train_inputs.append(tar[::-1])
-# train_inputs = np.array(train_inputs)
-
-inputs = keras.Input(shape=(seq_len, 1))
-x = keras.layers.LSTM(64, return_sequences=True)(inputs)
-x = keras.layers.LSTM(32, return_sequences=True)(x)
-outputs = keras.layers.TimeDistributed(keras.layers.Dense(1))(x)
+inputs = keras.Input(shape=(748, 1))
+x = keras.layers.Conv1D(
+        filters=32, kernel_size=7, padding='same', strides=2,
+        activation='relu')(inputs)
+x = keras.layers.Dropout(.2)(x)
+x = keras.layers.Conv1D(
+        filters=16, kernel_size=7, padding='same', strides=2,
+        activation='relu')(x)
+x = keras.layers.Conv1DTranspose(
+        filters=16, kernel_size=7, padding='same', strides=2,
+        activation='relu')(x)
+x = keras.layers.Dropout(.2)(x)
+x = keras.layers.Conv1DTranspose(
+        filters=32, kernel_size=7, padding='same', strides=2,
+        activation='relu')(x)
+outputs = keras.layers.Conv1DTranspose(
+        filters=1, kernel_size=7, padding='same')(x)
 model = keras.Model(inputs, outputs)
 model.summary()
 
@@ -53,50 +65,64 @@ model.compile(optimizer='adam',
               loss='mae',
               metrics=['mae'])
 
-history = model.fit(train_targets, train_targets,
-                    epochs=10)
+callbacks = [
+        keras.callbacks.EarlyStopping(
+            monitor='val_loss',
+            patience=5,
+            mode='min')
+        ]
 
-print(history.history.keys())
+history = model.fit(train_inputs, train_inputs,
+                    batch_size=128,
+                    validation_split=.1,
+                    callbacks=callbacks,
+                    epochs=50)
 
 train_loss = history.history['loss']
-train_mae = history.history['mae']
-
-plt.plot(data)
+val_loss = history.history['val_loss']
+epochs = range(1, len(train_loss) + 1)
+plt.plot(epochs, train_loss)
+plt.plot(val_loss)
 plt.show()
 
-# test_inputs = keras.utils.timeseries_dataset_from_array(
-#         data=data,
-#         targets=None,
-#         sequence_length=seq_len,
-#         batch_size=None)
-# test_inputs = np.array([np.array(ti[::-1]) for ti in test_inputs])
+train_inputs_pred = model.predict(train_inputs)
 
-preds = []
-count = 1
-for ti in :
-    print(f'{count / len(test_inputs)}')
-    preds.append(model.predict(ti.reshape(50, 1)).reshape(-1))
-    count += 1
+train_mae = np.mean(np.abs(train_inputs - train_inputs_pred), axis=1)
+threshold = np.max(train_mae)
 
-preds_data = np.array(preds)
-print(preds_data.shape)
+test_inputs = keras.utils.timeseries_dataset_from_array(
+        data=anomalous_data,
+        targets=None,
+        sequence_length=seq_len,
+        batch_size=None)
 
-p = preds_data[::50].reshape(-1)
-plt.plot(p)
-plt.plot(data)
+test_inputs = np.array([np.array(ti) for ti in test_inputs])
+
+test_inputs = test_inputs.reshape(
+        test_inputs.shape[0], test_inputs.shape[1], 1)
+
+test_inputs_pred = model.predict(test_inputs)
+
+test_mae = np.mean(np.abs(test_inputs_pred - test_inputs), axis=1)
+
+start_ind = range(len(test_mae))
+
+plt.plot(start_ind, test_mae)
+plt.plot(start_ind, [threshold for i in start_ind])
 plt.show()
 
-preds_mae = []
-for td, pd in zip(test_inputs, preds_data):
-    mae = np.mean(np.abs(td[::-1] - pd))
-    preds_mae.append(mae)
-preds_mae = np.array(preds_mae)
+anomalies_ind = []
+anomalies_val = []
+for i, mae in enumerate(test_mae.reshape(-1)):
+    if mae > threshold:
+        anomalies_ind.append(i)
+        anomalies_val.append(anomalous_data[i])
+anomalies_ind = np.array(anomalies_ind)
+anomalies_val = np.array(anomalies_val)
 
-threshold = .28
-time = range(len(preds_mae))
 
-plt.clf()
-
-plt.plot(time, [threshold for i in time])
-plt.plot(time, preds_mae)
+plt.plot(time, anomalous_data)
+plt.scatter(time[anomalies_ind], anomalies_val, c='red', s=10)
+plt.title('predicted anomolies')
 plt.show()
+
