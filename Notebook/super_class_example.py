@@ -13,8 +13,8 @@ class parent:
 
 class child(parent):
 
-    def __init__(self, text, c, d):
-        super().__init__(text, 2, 3)
+    def __init__(self, text, a, b, c, d):
+        super().__init__(text, a, b)
         self.c = c
         self.d = d
 
@@ -22,6 +22,8 @@ class child(parent):
         print(self.c - self.d)
 
 child_instance = child(text='here is the text',
+                       a=3,
+                       b=7,
                        c=1,
                        d=2)
 
@@ -33,3 +35,5 @@ print(child_instance.d)
 child_instance.print_text()
 child_instance.add_nums()
 child_instance.subtract_nums()
+
+
