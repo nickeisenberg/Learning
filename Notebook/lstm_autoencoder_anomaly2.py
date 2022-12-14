@@ -1,3 +1,6 @@
+# takes to long to run
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
@@ -21,7 +24,7 @@ for i in np.arange(0, 5, 1 / 2)[1:]:
 train_data += np.sqrt(1 / 5000) * np.random.normal(0, 1, size=5000)
 train_data = train_data.reshape((-1, 1))
  
-seq_len = 20
+seq_len = 300
 
 plt.plot(time[: seq_len], train_data[:seq_len])
 plt.plot(time[seq_len:], train_data[seq_len:])
@@ -66,12 +69,15 @@ print(train_inputs.shape)
 
 # LSTM autoencoder
 inputs = keras.Input(shape=(seq_len, 1))
-x = keras.layers.LSTM(128, activation='relu',
+x = keras.layers.LSTM(256, activation='relu',
                       return_sequences=True)(inputs)
-x = keras.layers.LSTM(64, activation='relu')(x)
+x = keras.layers.Dropout(.2)(x)
+x = keras.layers.LSTM(256, activation='relu')(x)
 x = keras.layers.RepeatVector(seq_len)(x)
-x = keras.layers.LSTM(64, activation='relu', return_sequences=True)(x)
-x = keras.layers.LSTM(128, activation='relu', return_sequences=True)(x)
+x = keras.layers.LSTM(256, activation='relu', return_sequences=True)(x)
+x = keras.layers.Dropout(.2)(x)
+x = keras.layers.LSTM(256, activation='relu', return_sequences=True)(x)
+x = keras.layers.Dropout(.2)(x)
 outputs = keras.layers.TimeDistributed(keras.layers.Dense(1))(x)
 model = keras.Model(inputs, outputs)
 
@@ -89,7 +95,7 @@ callbacks = [
             patience=5,
             mode='min'),
         keras.callbacks.ModelCheckpoint(
-            filepath=f'{model_dir}/lstm_anom.keras',
+            filepath=f'{model_dir}/lstm_anom_2.keras',
             monitor='val_mae',
             save_best_only=True)
         ]
