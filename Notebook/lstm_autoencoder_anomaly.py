@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tensorflow import keras
 from sklearn.preprocessing import MinMaxScaler
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
  
 np.random.seed(1)
  
@@ -17,38 +19,37 @@ def bump(x, s, plateau=False):
 train_data = np.zeros(5000)
 for i in np.arange(0, 5, 1 / 2)[1:]:
     train_data += bump(time, i)
-# train_data /= max(train_data)
 train_data += np.sqrt(1 / 5000) * np.random.normal(0, 1, size=5000)
-train_data = train_data.reshape((-1, 1))
- 
 seq_len = 20
 
 plt.plot(time[: seq_len], train_data[:seq_len])
 plt.plot(time[seq_len:], train_data[seq_len:])
 plt.show()
- 
-anomaly = bump(time, 3) / max(bump(time, 3))
-anomaly = anomaly.reshape((-1, 1))
-anomalous_data = train_data + 6 * anomaly
- 
-plt.plot(anomalous_data)
-plt.show()
- 
-Mm = MinMaxScaler(feature_range=(0,1))
- 
-train_data = Mm.fit_transform(train_data)
- 
-train_data = train_data.reshape(-1)
 
-plt.plot(train_data)
-plt.show()
- 
-anomalous_data = Mm.transform(anomalous_data)
+anomaly = np.zeros(5000)
+anomaly += 5 * bump(time, 3) / max(bump(time, 3))
+anomaly += 1 * bump(time, 4) / max(bump(time, 4))
+anomaly -= 4 * bump(time, 1) / max(bump(time, 1))
+anomaly -= 2 * bump(time, 2) / max(bump(time, 2))
+anomaly += np.hstack((
+    np.zeros(4600), np.array([1, 2, 3, 4, 5]), np.zeros(5000 - 4600 -5)))
+anomaly -= np.hstack((
+    np.zeros(420), np.array([2, 1, 2]), np.zeros(5000 - 420 - 3)))
+anomalous_data = train_data + anomaly
 
-anomalous_data = anomalous_data.reshape(-1)
-
-plt.plot(anomalous_data)
-plt.show()
+fig = make_subplots(rows=1, cols=2,
+                    subplot_titles=(
+                        'training signal',
+                        'anomalous signal'))
+_ = fig.add_trace(go.Scatter(x=time, y=train_data,
+                             name='training signal'),
+                  row=1, col=1)
+_ = fig.add_trace(go.Scatter(x=time, y=anomalous_data,
+                             name='anomalous signal'),
+              row=1, col=2)
+_ = fig.update_layout(yaxis1={'range': [0, 25]},
+                      yaxis2={'range': [0, 25]})
+fig.show()
 
 train_inputs = keras.utils.timeseries_dataset_from_array(
         data=train_data,
@@ -59,20 +60,16 @@ train_inputs = np.array([np.array(inp) for inp in train_inputs])
  
 print(train_inputs.shape)
  
-train_inputs = train_inputs.reshape(
-        train_inputs.shape[0], train_inputs.shape[1], 1)
- 
-print(train_inputs.shape)
-
 # LSTM autoencoder
-inputs = keras.Input(shape=(seq_len, 1))
-x = keras.layers.LSTM(128, activation='relu',
-                      return_sequences=True)(inputs)
+inputs = keras.Input(shape=(seq_len,))
+x = keras.layers.Reshape((seq_len, 1))(inputs)
+x = keras.layers.LSTM(128, activation='relu', return_sequences=True)(x)
 x = keras.layers.LSTM(64, activation='relu')(x)
 x = keras.layers.RepeatVector(seq_len)(x)
 x = keras.layers.LSTM(64, activation='relu', return_sequences=True)(x)
 x = keras.layers.LSTM(128, activation='relu', return_sequences=True)(x)
-outputs = keras.layers.TimeDistributed(keras.layers.Dense(1))(x)
+x = keras.layers.TimeDistributed(keras.layers.Dense(1))(x)
+outputs = keras.layers.Reshape((seq_len,))(x)
 model = keras.Model(inputs, outputs)
 
 model.summary()   
@@ -81,15 +78,11 @@ model.compile(optimizer='adam',
               loss='mae',
               metrics=['mae'])
 
-model_dir = '/Users/nickeisenberg/GitRepos/Python_Notebook/Notebook/Models'
+model_dir = '/Users/nickeisenberg/GitRepos/Python_Notebook/Notebook/Models/'
 
 callbacks = [
-        keras.callbacks.EarlyStopping(
-            monitor='val_loss', 
-            patience=5,
-            mode='min'),
         keras.callbacks.ModelCheckpoint(
-            filepath=f'{model_dir}/lstm_anom.keras',
+            filepath=f'{model_dir}lstm_anom.keras',
             monitor='val_mae',
             save_best_only=True)
         ]
@@ -98,7 +91,7 @@ history = model.fit(train_inputs, train_inputs,
                     batch_size=128,
                     validation_split=.1,
                     callbacks=callbacks,
-                    epochs=50)
+                    epochs=200)
 
 train_mae = history.history['mae']
 val_mae = history.history['val_mae']
@@ -111,17 +104,21 @@ plt.xlabel('epochs')
 plt.ylabel('mae')
 plt.show()
 
+model = keras.models.load_model(
+        model_dir + '/lstm_anom.keras')
+
 train_preds = model.predict(train_inputs)
 
 print(train_preds.shape)
 
-# Encode and decode the input data
-pred_inp_data = train_preds.reshape(
-        train_preds.shape[0], train_preds.shape[1]
-        )[::20].reshape(-1)
+pred_signal = np.hstack(
+        train_preds[::seq_len])
 
-plt.plot(train_data, label='input data')
-plt.plot(pred_inp_data, label='encdoed and decoded\ninput data')
+print(pred_signal.shape)
+
+# Encode and decode the input data
+plt.plot(train_data, label='input data', linewidth=4)
+plt.plot(pred_signal, label='encdoed and decoded\ninput data')
 plt.legend(loc='upper left')
 plt.title('The encoded and decoded input data')
 plt.show()
@@ -137,9 +134,6 @@ test_inputs = keras.utils.timeseries_dataset_from_array(
 
 test_inputs = np.array([np.array(ti) for ti in test_inputs])
  
-test_inputs = test_inputs.reshape(
-        test_inputs.shape[0], test_inputs.shape[1], 1)
- 
 print(test_inputs.shape)
  
 test_preds = model.predict(test_inputs)
@@ -147,12 +141,11 @@ test_preds = model.predict(test_inputs)
 print(test_preds.shape)
 
 # visualize the encoding and decoding of the test_inputs
-pred_test_data = test_preds.reshape(
-        test_preds.shape[0], test_preds.shape[1]
-        )[::20].reshape(-1)
+test_pred_signal = np.hstack(
+        test_preds[::seq_len])
 
 plt.plot(anomalous_data, label='test data')
-plt.plot(pred_test_data, label='encoded and decoded test data')
+plt.plot(test_pred_signal, label='encoded and decoded test data')
 plt.legend(loc='upper left')
 plt.title('encoded and decoded anomalous data')
 plt.show()
@@ -161,55 +154,85 @@ a_e = np.abs(test_preds - test_inputs)
 print(a_e.shape)
 
 test_mae = np.mean(a_e, axis=1)
-print(test_mae.shape)
 
-start_ind = range(len(test_mae))
+start_ind = np.array([*range(len(test_mae))])
  
 plt.plot(start_ind, test_mae)
 plt.plot(start_ind, [threshold for i in start_ind])
 plt.show()
 
-anomalies_ind_total = []
-for i, mae in enumerate(test_mae.reshape(-1)):
-    if mae > threshold:
-        anomalies_ind_total.append(i)
-anomalies_ind_total = np.array(anomalies_ind_total)
+fig = make_subplots(rows=2, cols=1)
+_ = fig.add_trace(go.Scatter(x=time, y=anomalous_data,
+                             line={'width': 4},
+                             name='anomalous signal'),
+                  row=1, col=1)
+_ = fig.add_trace(go.Scatter(x=time, y=test_pred_signal,
+                             name='encoded and decoded anomalous signal'),
+                  row=1, col=1)
+_ = fig.add_trace(go.Scatter(x=start_ind, y=test_mae,
+                             name='anomalous signal MAE'),
+                  row=2, col=1)
+_ = fig.add_trace(go.Scatter(
+    x=start_ind, y=np.array([threshold for i in start_ind]),
+    name='MAE threshold'),
+                  row=2, col=1)
+_ = fig.update_layout(
+        title={'text': 'Detection of anomlies using the test MAE',
+               'x': .5})
+fig.show()
 
-# Each anomaly index represents 20 timesteps in the future.
-# In other words, if i in anomalies_ind, then that means [i: i + 20]
-# is anomalous.
-# Go through and remove redundant anomalies
 anomalies_ind = []
-for i in anomalies_ind_total:
-    if len(anomalies_ind) == 0:
-        anomalies_ind.append(i)
-        continue
-    if i > anomalies_ind[-1] + 20:
-        anomalies_ind.append(i)
+for i, mae in enumerate(test_mae):
+    if mae > threshold:
+        if len(anomalies_ind) == 0:
+            anomalies_ind.append(i)
+        elif i > anomalies_ind[-1] - seq_len / 2:
+            anomalies_ind.append(i)
 anomalies_ind = np.array(anomalies_ind)
 
-print(anomalies_ind.shape)
-
-print(anomalies_ind)
-
-anomalies_val = []
+detected_anomalies = []
 for i in anomalies_ind:
-    val = anomalous_data[i: i + 20]
-    anomalies_val.append(val)
-anomalies_val = np.array(anomalies_val)
+    if i == anomalies_ind[0]:
+        detected_anomalies.append(
+                go.Scatter(x=time[i: i + seq_len],
+                           y=anomalous_data[i: i + seq_len],
+                           line={'color': 'red',
+                                 'width': 4},
+                           name='detected anomaly')
+                )
+    else:
+        detected_anomalies.append(
+                go.Scatter(x=time[i: i + seq_len],
+                           y=anomalous_data[i: i + seq_len],
+                           line={'color': 'red',
+                                 'width': 4},
+                           showlegend=False)
+                )
 
-print(anomalies_val.shape)
+fig = make_subplots(rows=2, cols=1)
+_ = fig.add_trace(
+        go.Scatter(x=time, y=train_data,
+                   line={'color': 'black',
+                         'width': 4},
+                   name='training signal'),
+        row=1, col=1
+        )
+_ = fig.add_trace(
+        go.Scatter(x=time, y=anomalous_data,
+                   line={'width': 4,
+                         'color': 'blue'},
+                   name='anomalous signal'),
+        row=2, col=1
+        )
+for plot in detected_anomalies:
+    _ = fig.add_trace(
+            go.Scatter(plot),
+            row=2, col=1
+            )
+_ = fig.update_layout(yaxis1={'range': [0, 20]},
+                      yaxis2={'range': [0, 20]},
+                      title={'text': 'Detected anomalies',
+                             'x': .5})
+fig.show()
 
-print(anomalies_val[0].shape)
 
-# plot the anomalies
-plt.plot(time, anomalous_data)
-for i in anomalies_ind:
-    plt.scatter(time[np.arange(i, i + 20, 1)],
-                anomalous_data[i: i + 20],
-                c='red', s=10)
-plt.title('encoding and decoding of anomalous data')
-plt.show()
-
-   
- 
