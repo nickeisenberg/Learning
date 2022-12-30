@@ -7,7 +7,6 @@ from sklearn.preprocessing import MinMaxScaler
 from copy import deepcopy
 from keras.utils import timeseries_dataset_from_array 
 from keras import layers, Input, Model, callbacks, models
-from tensorflow.python.eager.context import anonymous_name
 
 # function to generate bumps
 def similar_bumps(center, spread, height):
@@ -50,40 +49,22 @@ bump_plots.append(go.Scatter(x=time, y=avg_bump,
                                    'width': 4},
                              name='average of the bumps'))
 fig = go.Figure(bump_plots)
+_ = fig.update_layout(
+        title={'text': 'Bumps with labeled anomalies',
+               'x': .5})
 fig.show()
-#--------------------------------------------------
-
-# When you scale the bumps, you lose the anomalies so maybe scaling is bad.
-# Mm = MinMaxScaler()
-# avg_bump_sc = Mm.fit_transform(avg_bump.reshape((-1,1))).reshape(-1)
-# 
-# bumps_sc = np.array(
-#         [Mm.fit_transform(bump.reshape((-1,1))).reshape(-1) for bump in bumps]
-#         )
-# 
-# for bump in bumps_sc:
-#     plt.plot(bump)
-# plt.plot(time, avg_bump_sc, c='black')
-# plt.show()
-# 
-# bump_sc_plots = []
-# for bump in bumps_sc:
-#     bump_sc_plots.append(go.Scatter(x=time, y=bump))
-# bump_sc_plots.append(go.Scatter(x=time,
-#                                 y=avg_bump_sc,
-#                                 line={'color': 'black'}))
-# fig = go.Figure(bump_sc_plots)
-# fig.show()
 #--------------------------------------------------
 
 # Create the training set based on the average of the bumps
 
 train_bump = deepcopy(avg_bump[200 - 80: 200 + 80])
 
+seq_len = 10
+
 train_inputs = timeseries_dataset_from_array(
         data=train_bump,
         targets=None,
-        sequence_length=10,
+        sequence_length=seq_len,
         batch_size=None)
 
 train_inputs = np.array([
@@ -93,15 +74,15 @@ print(train_inputs.shape)
 #--------------------------------------------------
 
 # define the model
-inputs = Input(shape=(10,))
-x = layers.Reshape((10,1), input_shape=(10,))(inputs)
-x = layers.LSTM(128, activation='relu', return_sequences=True)(x)
-x = layers.LSTM(64, activation='relu', return_sequences=False)(x)
-x = layers.RepeatVector(10)(x)
+inputs = Input(shape=(seq_len,))
+x = layers.Reshape((seq_len, 1))(inputs)
 x = layers.LSTM(64, activation='relu', return_sequences=True)(x)
-x = layers.LSTM(128, activation='relu', return_sequences=True)(x)
+x = layers.LSTM(32, activation='relu', return_sequences=False)(x)
+x = layers.RepeatVector(seq_len)(x)
+x = layers.LSTM(32, activation='relu', return_sequences=True)(x)
+x = layers.LSTM(64, activation='relu', return_sequences=True)(x)
 x = layers.TimeDistributed(layers.Dense(1))(x)
-outputs = layers.Reshape((10,))(x)
+outputs = layers.Reshape((seq_len,))(x)
 model = Model(inputs, outputs)
 
 model.summary()
@@ -116,13 +97,13 @@ model_dir = '/Users/nickeisenberg/GitRepos/Python_Notebook/Notebook/Models/'
 
 callbacks = [
         callbacks.ModelCheckpoint(
-        filepath=model_dir + 'bump_anom.keras',
+        filepath=model_dir + 'one_bump_anom.keras',
         monitor='val_mae',
         save_best_only=True)
         ]
 
 history = model.fit(train_inputs, train_inputs,
-                    batch_size=32,
+                    batch_size=16,
                     validation_split=.1,
                     callbacks=callbacks,
                     epochs=200)
@@ -139,28 +120,20 @@ plt.show()
 #--------------------------------------------------
 
 # load the best model and see how it did on the training data
-model = models.load_model(model_dir + 'bump_anom.keras')
+model = models.load_model(model_dir + 'one_bump_anom.keras')
 
 train_preds = model.predict(train_inputs)
 
 print(train_inputs.shape)
 print(train_preds.shape)
 
-for pred, act in zip(train_preds, train_inputs):
-    plt.clf()
-    plt.plot(pred)
-    plt.plot(act)
-    plt.pause(.001)
-plt.show()
+train_pred_signal = np.hstack(
+        [pred for pred in train_preds[::seq_len]]
+        )
 
-count = 0
-fig, ax = plt.subplots(1, 2)
-for pred, act in zip(train_preds[::10], train_inputs[::10]):
-    dom = np.arange(count * 10, (count  + 1) * 10, 1)
-    ax[0].plot(dom, pred)
-    ax[1].plot(dom, act)
-    count += 1
-plt.show()
+plt.plot(train_pred_signal)
+plt.plot(train_bump)
+plt.show()      
 #--------------------------------------------------
 
 # calculate the max mae to use as the anomoly threshhold
@@ -179,7 +152,7 @@ plt.show()
 test_inputs = timeseries_dataset_from_array(
         data=test_bump,
         targets=None,
-        sequence_length=10,
+        sequence_length=seq_len,
         batch_size=None)
 
 test_inputs = np.array([
@@ -195,41 +168,30 @@ plt.plot([threshold for i in range(len(test_pred_mae))])
 plt.show()
 
 count = 0
-anomoly_detection_inds = []
+anomaly_detection_inds = []
 for act, pred in zip(test_inputs, test_pred):
     mae = np.max(np.mean(np.abs(act - pred)))
     if mae >= threshold:
-        if len(anomoly_detection_inds) == 0:
-            anomoly_detection_inds.append(count)
-        elif count > anomoly_detection_inds[-1] + 10:
-            anomoly_detection_inds.append(count)
+        if len(anomaly_detection_inds) == 0:
+            anomaly_detection_inds.append(count)
+        elif count > anomaly_detection_inds[-1] - seq_len / 2:
+            anomaly_detection_inds.append(count)
     count += 1
 #--------------------------------------------------
     
 # See how the detection did
-count = 0
-fig, ax = plt.subplots(1, 2)
-for pred, act in zip(test_inputs[::10], test_pred[::10]):
-    for anom in anomoly_detection_inds:
-        if count * 10 <= anom <= (count + 1) * 10:
-            dom = np.arange(count * 10, (count + 1) * 10, 1)
-            ax[0].plot(dom, pred, c='red')
-            ax[0].plot(dom, act, c='blue')
-        else:
-            dom = np.arange(count * 10, (count + 1) * 10, 1)
-            ax[0].plot(dom, pred, c='blue')
-            ax[0].plot(dom, act, c='blue')
-    count += 1
-ax[1].plot(test_bump, label='anomoly')
-ax[1].plot(train_bump, label=f'good bump')
-ax[1].set_title('The good bump versus the anomoulus bump')
-ax[0].set_title('predicted and actual signal')
-ax[1].legend(loc='upper right')
+model_time = time[120: 280]
+
+test_pred_bump = np.hstack(
+        [pred for pred in test_pred[::seq_len]])
+
+plt.plot(model_time, test_bump, c='green')
+plt.plot(model_time, test_pred_bump c='blue')
+for ind in anomaly_detection_inds:
+    plt.plot(model_time[ind: ind + seq_len],
+             test_pred_bump[ind: ind + seq_len],
+             c='red')
 plt.show()
-
-test_pred_bump = np.hstack(test_pred[::10])
-
-domain = np.arange(0, len(test_pred_bump), 1)
 
 fig = make_subplots(
         rows=1, cols=2,

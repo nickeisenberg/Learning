@@ -37,18 +37,22 @@ anomaly -= np.hstack((
     np.zeros(420), np.array([2, 1, 2]), np.zeros(5000 - 420 - 3)))
 anomalous_data = train_data + anomaly
 
-fig = make_subplots(rows=1, cols=2,
+fig = make_subplots(rows=2, cols=1,
                     subplot_titles=(
                         'training signal',
                         'anomalous signal'))
 _ = fig.add_trace(go.Scatter(x=time, y=train_data,
+                             line={'width': 3,
+                                   'color': 'black'},
                              name='training signal'),
                   row=1, col=1)
 _ = fig.add_trace(go.Scatter(x=time, y=anomalous_data,
+                             line={'width': 3,
+                                   'color': 'blue'},
                              name='anomalous signal'),
-              row=1, col=2)
-_ = fig.update_layout(yaxis1={'range': [0, 25]},
-                      yaxis2={'range': [0, 25]})
+              row=2, col=1)
+_ = fig.update_layout(yaxis1={'range': [0, 20]},
+                      yaxis2={'range': [0, 20]})
 fig.show()
 
 train_inputs = keras.utils.timeseries_dataset_from_array(
@@ -82,7 +86,7 @@ model_dir = '/Users/nickeisenberg/GitRepos/Python_Notebook/Notebook/Models/'
 
 callbacks = [
         keras.callbacks.ModelCheckpoint(
-            filepath=f'{model_dir}lstm_anom.keras',
+            filepath=f'{model_dir}lstm_anom_bumps.keras',
             monitor='val_mae',
             save_best_only=True)
         ]
@@ -167,13 +171,16 @@ _ = fig.add_trace(go.Scatter(x=time, y=anomalous_data,
                              name='anomalous signal'),
                   row=1, col=1)
 _ = fig.add_trace(go.Scatter(x=time, y=test_pred_signal,
-                             name='encoded and decoded anomalous signal'),
+                             name='encoded and decoded anomalous signal',
+                             line={'width': 2}),
                   row=1, col=1)
 _ = fig.add_trace(go.Scatter(x=start_ind, y=test_mae,
+                             line={'width': 2},
                              name='anomalous signal MAE'),
                   row=2, col=1)
 _ = fig.add_trace(go.Scatter(
     x=start_ind, y=np.array([threshold for i in start_ind]),
+    line={'width': 3},
     name='MAE threshold'),
                   row=2, col=1)
 _ = fig.update_layout(
@@ -197,7 +204,7 @@ for i in anomalies_ind:
                 go.Scatter(x=time[i: i + seq_len],
                            y=anomalous_data[i: i + seq_len],
                            line={'color': 'red',
-                                 'width': 4},
+                                 'width': 2},
                            name='detected anomaly')
                 )
     else:
@@ -205,21 +212,20 @@ for i in anomalies_ind:
                 go.Scatter(x=time[i: i + seq_len],
                            y=anomalous_data[i: i + seq_len],
                            line={'color': 'red',
-                                 'width': 4},
+                                 'width': 2},
                            showlegend=False)
                 )
-
 fig = make_subplots(rows=2, cols=1)
 _ = fig.add_trace(
         go.Scatter(x=time, y=train_data,
                    line={'color': 'black',
-                         'width': 4},
+                         'width': 3},
                    name='training signal'),
         row=1, col=1
         )
 _ = fig.add_trace(
         go.Scatter(x=time, y=anomalous_data,
-                   line={'width': 4,
+                   line={'width': 3,
                          'color': 'blue'},
                    name='anomalous signal'),
         row=2, col=1
