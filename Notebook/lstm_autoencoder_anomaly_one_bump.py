@@ -162,6 +162,31 @@ test_pred = model.predict(test_inputs)
 
 test_pred_mae = np.mean(np.abs(test_pred - test_inputs), axis=1)
 
+model_time = time[120: 280]
+mae_dom = np.array([*range(len(test_pred_mae))])
+
+fig = make_subplots(rows=2, cols=1)
+_ = fig.add_trace(go.Scatter(
+        x=model_time, y=train_bump,
+        name='training signal',
+        line={'color': 'black'}),
+                  row=1, col=1)
+_ = fig.add_trace(go.Scatter(
+        x=model_time, y=test_bump,
+        name='anomalous signal',
+        line={'color': 'blue'}),
+                  row=1, col=1)
+_ = fig.add_trace(go.Scatter(
+    x=mae_dom, y=test_pred_mae,
+    name='anomalous signal MAE'),
+                  row=2, col=1)
+_ = fig.add_trace(go.Scatter(
+    x=mae_dom,
+    y=np.array([threshold for i in range(len(mae_dom))]),
+    name='MAE threshold'),
+                  row=2, col=1)
+fig.show()
+
 print(test_pred_mae.shape)
 plt.plot(test_pred_mae)
 plt.plot([threshold for i in range(len(test_pred_mae))])
@@ -180,7 +205,6 @@ for act, pred in zip(test_inputs, test_pred):
 #--------------------------------------------------
     
 # See how the detection did
-model_time = time[120: 280]
 
 test_pred_bump = np.hstack(
         [pred for pred in test_pred[::seq_len]])
@@ -193,42 +217,42 @@ for ind in anomaly_detection_inds:
              c='red')
 plt.show()
 
-fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=(
-            'anomolus bump vs training bump',
-            'detecting for an anomoly',)
-        )
-_ = fig.add_trace(
-        go.Scatter(x=domain, y=test_bump,
-                   name='trace 103',
-                   line={'color': 'darkslategrey',
-                         'width': 5}),
-        row=1, col=2)
-_ = fig.add_trace(
-        go.Scatter(x=domain, y=test_pred_bump,
-                   name='encoded and decoded anomolus bump',
-                   line={'color': 'orange'}),
-        row=1, col=2)
-for anom in anomoly_detection_inds:
-    _ = fig.add_trace(
-            go.Scatter(x=domain[anom: anom + 10],
-                       y=test_pred_bump[anom: anom + 10],
-                       name='deteced anomoly',
-                       mode='lines',
-                       line={'color': 'red',
-                             'width': 8}),
-            row=1, col=2)
-_ = fig.add_trace(
-        go.Scatter(x=np.arange(120, 280, 1),
-                   y=test_bump,
-                   showlegend=False,
-                   line={'color': 'darkslategrey',
-                         'width': 5}),
-        row=1, col=1)
-_ = fig.add_trace(
-        go.Scatter(x=np.arange(120, 280, 1), y=train_bump,
-                   line={'color': 'black'},
-                   name='average of the bumps'),
-        row=1, col=1)
+detected_anomalies = []
+for ind in anomaly_detection_inds:
+    if ind == anomaly_detection_inds[0]:
+        detected_anomalies.append(
+                go.Scatter(x=model_time[ind: ind + seq_len],
+                           y=test_bump[ind: ind + seq_len],
+                           name='detected anomaly',
+                           line={'color': 'red'},
+                           mode='lines')
+                )
+    else:
+        detected_anomalies.append(
+                go.Scatter(x=model_time[ind: ind + seq_len],
+                           y=test_bump[ind: ind + seq_len],
+                           line={'color': 'red'},
+                           showlegend=False,
+                           mode='lines')
+                )
+fig = make_subplots(rows=1, cols=1)
+_ = fig.add_trace(go.Scatter(
+    x=model_time, y=train_bump,
+    name='training signal',
+    line={'color': 'black'}),
+                  row=1, col=1)
+_ = fig.add_trace(go.Scatter(
+    x=model_time, y=test_bump,
+    name='anomalous signal',
+    line={'color': 'blue'}),
+                  row=1, col=1)
+for plot in detected_anomalies:
+    _ = fig.add_trace(plot,
+    row=1, col=1)
+_ = fig.update_layout(title={'text': 'deteced anomalies'})
 fig.show()
+
+
+
+
+
