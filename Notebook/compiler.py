@@ -8,32 +8,6 @@ from datetime import datetime
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 
-time = np.linspace(0, 1, 1000)
-delta = time[1] - time[0]
-
-b_motion = np.cumsum(
-        np.sqrt(delta) * np.random.normal(0, 1, 1000)
-        )
-
-b_motion = np.hstack((0, b_motion))
-
-fig = go.Figure(
-        [go.Scatter(
-            x=time,
-            y=b_motion)
-         ]
-        )
-fig.show()
-
-b_motion_flucs = pd.DataFrame(
-        data=np.diff(b_motion), columns=['flucs'])
-
-fig = px.histogram(
-        data_frame=b_motion_flucs,
-        x='flucs',
-        nbins=20)
-fig.show()
-
 tickers = ['SPY', 'GME', 'AMZN', 'QQQ', 'TSLA', 'NVDA']
 
 opens = {}
