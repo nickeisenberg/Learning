@@ -29,7 +29,7 @@ fig.show()
 def likelihood(sample, mu):
     return np.product(poisson(mu).pmf(sample))
 
-mus = np.arange(1, 11)
+mus = np.linspace(1, 11, 1000)
 ll_ins = [] 
 for mu in mus:
     ll_ins.append(likelihood(random_sample, mu))
@@ -41,3 +41,6 @@ fig = go.Figure(
 fig.show()
 
 print(f' MLE of the sample is {mus[np.argmax(ll_ins)]}')
+print(random_sample.mean())
+
+
