@@ -12,7 +12,10 @@ bm_df = pd.DataFrame(
         data=bm,
         index=time)
 
-fig = px.line(bm_df, x=bm_df.index, y=bm_df.columns)
+fig = px.line(bm_df,
+              x=bm_df.index,
+              y=bm_df.columns,
+              color=bm_df.columns)
 fig.show()
 
 print(bm_df.columns)

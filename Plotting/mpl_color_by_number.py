@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import matplotlib.colors as mplc
-import matplotlib.cm as cm
 import numpy as np
 
 line = lambda x, b: x + b
@@ -16,4 +15,5 @@ for i, l in enumerate(lines):
     plt.plot(l, color=cmap(norm(i)))
 plt.title('color by number')
 sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+plt.colorbar(sm)
 plt.show()
