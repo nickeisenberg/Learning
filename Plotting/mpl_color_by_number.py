@@ -10,11 +10,10 @@ lines = np.array(
          for b in range(10)]
         )
 
-cmap = cm.autumn
-norm = mplc.Normalize(vmin=0, vmax=1)
-
+cmap = plt.get_cmap('viridis', lines.shape[0])
+norm = mplc.Normalize(vmin=0, vmax=lines.shape[0] - 1)
 for i, l in enumerate(lines):
-    i = i / lines.shape[0]
     plt.plot(l, color=cmap(norm(i)))
 plt.title('color by number')
+sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 plt.show()
