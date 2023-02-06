@@ -1,15 +1,6 @@
-infile = open('file_test.txt')
+with open('text_file.txt') as f:
+    lines = f.readlines()
 
-header = infile.read(3)
-
-print(header)
-
-header = infile.read(4)
-
-print(header)
-
-infile.seek(4)
-
-print(infile.read(3))
-
+for l in lines:
+    print(l)
 
