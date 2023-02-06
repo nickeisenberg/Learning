@@ -34,15 +34,11 @@ def plot_specrogram_ptly(freqs, ffts, show=False):
         return fig
 
 def plot_spectrogram_mpl(freqs, ffts, show=False):
-    scatter_pairs = []
-    for t, fft in enumerate(ffts):
-        for freq, fft_val in zip(freqs, fft):
-            scatter_pairs.append([t, freq, fft_val])
-    scatter_pairs = np.array(scatter_pairs)
-    scatter_df = pd.DataFrame(data=scatter_pairs,
-                              columns=['time', 'freq', 'fft'])
-    plot = plt.scatter(scatter_df['time'].values, scatter_df['freq'].values,
-                       c=scatter_df['fft'].values)
+    t = np.array([np.ones(ffts.shape[1]) * i for i in range(ffts.shape[0])])
+    t = t.reshape(-1)
+    freqs = np.array([freqs for i in range(ffts.shape[0])]).reshape(-1)
+    ffts = ffts.reshape(-1)
+    plot = plt.scatter(t, freqs, c=ffts)
     if show:
         return plt.show()
     else:
