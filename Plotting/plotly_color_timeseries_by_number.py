@@ -21,6 +21,7 @@ bm_df = pd.DataFrame(
 #-------------------------------------------------- 
 
 # lines
+time = np.linspace(0, 1, 100)
 line = lambda x, b: x + b
 lines = np.array(
         [line(time, b) for b in np.linspace(0, 1, 100)]
@@ -34,7 +35,7 @@ lines_df = pd.DataFrame(
 
 # rgba colors and plot
 cmap = plt.get_cmap('viridis', no_sigs)
-norm = mplc.Normalize(vmin=sig_names[0], vmax=sig_names[-1])
+norm = mplc.Normalize(vmin=line_names[0], vmax=line_names[-1])
 
 # Initialize the color bar
 c_bar_data = np.vstack([lines_df.columns.values,
