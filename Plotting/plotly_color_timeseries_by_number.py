@@ -48,6 +48,7 @@ fig = px.scatter(colorbar_df,
                  y='empt2',
                  color='sig_num',
                  color_continuous_scale=px.colors.sequential.Viridis)
+
 #--------------------------------------------------
 
 # Plot the lines
