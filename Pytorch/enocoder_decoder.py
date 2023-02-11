@@ -37,16 +37,26 @@ fig.show()
 
 # create the dataset for training.
 seq_len = 20
+
 dataset_keras = tsd(data=signal,
                     targets=None,
                     sequence_stride=1,
                     sequence_length=seq_len,
                     batch_size=None)
-
 dataset_torch = torch.empty(seq_len)
 for d in dataset_keras:
     dataset_torch = torch.vstack((dataset_torch, torch.tensor(d.numpy())))
 dataset_torch = dataset_torch[1:,:]
+
+testset_keras = tsd(data=signal,
+                    targets=None,
+                    sequence_stride=1,
+                    sequence_length=seq_len,
+                    batch_size=None)
+testset_torch = torch.empty(seq_len)
+for d in testset_keras:
+    testset_torch = torch.vstack((testset_torch, torch.tensor(d.numpy())))
+testset_torch = testset_torch[1:,:]
 
 # define the model
 class lstm_nn(nn.Module):
@@ -82,6 +92,7 @@ class lstm_nn(nn.Module):
 model = lstm_nn().to('cpu')
 
 loss_fn = nn.L1Loss()
+accuracy = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 def train(dataset, model, loss_fn, optimizer):
@@ -98,13 +109,29 @@ def train(dataset, model, loss_fn, optimizer):
         optimizer.step()
 
         print(f"percent complete: {count / size}")
-        print(f"loss: {loss:>7f})
+        print(f"loss: {loss:>7f}")
 
-def train(dataset, model, loss_fn):
+
+def test(dataset, model, loss_fn, accuracy):
     size = dataset.shape[0]
     model.eval()
-    test_loss, accuracy = 0, 0
+    test_loss = []
+    acc = []
+    with torch.no_grad():
+        for inp, out in zip(testset_keras, testset_keras):
+            inp, out = inp.to('cpu'), out.to('cpu')
+            pred = model(inp)
+            test_loss.append(loss_fn(pred, out))
+            acc.append(max(0, 1 - accuracy(pred, out)))
+            print(f"Average accuracy: {torch.tensor(accur).mean.item()}")
+            print(f"Average loss: {torch.tensor(test_loss).mean.item()}")
 
+epochs = 5
+for t in range(epochs):
+    print(f"Epoch {t + 1}\n--------------------")
+    train(dataset_torch, model, loss_fn, optimizer)
+    test(testset_keras, model, loss_fn, accuracy)
+print('DONE')
 
 
 
