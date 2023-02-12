@@ -48,9 +48,21 @@ normal = 1
 val_counts = df['target'].value_counts()
 val_counts.index = class_names
 
-fig = px.histogram(val_counts,
-                   x=val_counts.index,
-                   y=val_counts.values)
+val_counts_df = pd.DataFrame(val_counts)
+
+fig = go.Figure()
+_ = fig.add_trace(
+        go.Bar(
+            x=val_counts_df.index,
+            y=val_counts_df['target']
+            )
+        )
+_ = fig.update_xaxes(
+        title={
+            'text': 'Class of hearbeat',
+            })
+_ = fig.update_yaxes(
+        title={
+            'text': 'amount from each class',
+            })
 fig.show()
-
-
