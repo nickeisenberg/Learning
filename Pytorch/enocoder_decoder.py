@@ -36,7 +36,7 @@ _ = fig.update_layout(
 fig.show()
 
 # create the dataset for training.
-seq_len = 20
+seq_len = 50
 
 dataset_keras = tsd(data=signal,
                     targets=None,
@@ -95,44 +95,80 @@ loss_fn = nn.L1Loss()
 accuracy = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-def train(dataset, model, loss_fn, optimizer):
+def train(dataset, model, loss_fn, optimizer, epoch):
     size = dataset.shape[0]
     model.train()
-    
     count = 1
     for inp, out in zip(dataset, dataset):
         pred = model(inp)
-        loss = loss_fn(inp, out)
-
+        loss = loss_fn(pred, out)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-        print(f"percent complete: {count / size}")
+        print(f"Epoch {epoch} percent complete: {count / size}")
         print(f"loss: {loss:>7f}")
-
+        count += 1
 
 def test(dataset, model, loss_fn, accuracy):
     size = dataset.shape[0]
     model.eval()
     test_loss = []
-    acc = []
+    test_acc = []
     with torch.no_grad():
-        for inp, out in zip(testset_keras, testset_keras):
+        for inp, out in zip(testset_torch, testset_torch):
             inp, out = inp.to('cpu'), out.to('cpu')
             pred = model(inp)
             test_loss.append(loss_fn(pred, out))
-            acc.append(max(0, 1 - accuracy(pred, out)))
-            print(f"Average accuracy: {torch.tensor(accur).mean.item()}")
-            print(f"Average loss: {torch.tensor(test_loss).mean.item()}")
+            test_acc.append(max(0, 1 - accuracy(pred, out)))
+            print(f"Average accuracy: {torch.tensor(test_acc).mean().item()}")
+            print(f"Average loss: {torch.tensor(test_loss).mean().item()}")
+    return test_loss, test_acc
 
 epochs = 5
+test_loss = []
+test_acc = []
 for t in range(epochs):
     print(f"Epoch {t + 1}\n--------------------")
-    train(dataset_torch, model, loss_fn, optimizer)
-    test(testset_keras, model, loss_fn, accuracy)
+    train(dataset_torch, model, loss_fn, optimizer, epoch=t)
+    # l, a = test(testset_torch, model, loss_fn, accuracy)
+    # test_loss.append(l)
+    # test_acc.append(a)
 print('DONE')
 
+testset_torch.shape
 
+sub = dataset_torch[::20]
 
+guess_signal = []
+for inp in sub:
+    with torch.no_grad():
+        guess_signal.append(model(inp))
 
+guess_signal = torch.vstack(guess_signal).reshape(-1)
+
+fig = go.Figure()
+_ = fig.add_trace(
+        go.Scatter(
+            x=time,
+            y=signal,
+            )
+        )
+_ = fig.add_trace(
+        go.Scatter(
+            x=time,
+            y=guess_signal,
+            )
+        )
+_ = fig.update_xaxes(
+        title={
+            'text': 'text',
+            })
+_ = fig.update_yaxes(
+        title={
+            'text': 'text',
+            })
+_ = fig.update_layout(
+        title={
+            'text': 'text',
+            })
+fig.show()
