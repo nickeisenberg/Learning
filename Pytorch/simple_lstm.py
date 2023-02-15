@@ -21,11 +21,19 @@ class lstm_nn(nn.Module):
         print(x.shape)
         x, _ = nn.LSTM(64, 64)(x)
         print(x.shape)
-        x, _ = nn.LSTM(64, 128)(x)
+        X, D = nn.LSTM(64, 128)(x)
+        print(X.shape)
+        x = nn.Linear(input_size * 128, input_size)(X.reshape(-1))
         print(x.shape)
-        x = nn.Linear(input_size * 128, input_size)(x.reshape(-1))
-        print(x.shape)
+        return x, X, D
 
 input = torch.randn(1, input_size)
-output = lstm_nn()(input)
+output, X, D = lstm_nn()(input)
 
+input.shape
+D[0].shape
+X.shape
+
+# I am pretty sure that D[0] is the same thing as return_sequences=False
+# from keras
+X[-1] - D[0]
