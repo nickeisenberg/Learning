@@ -7,6 +7,8 @@ from torchvision import datasets
 from torchvision.transforms import ToTensor
 
 # Download the training data from open data sets
+# The data is of the form (X, Y) where X is the image tensor and Y is the 
+# number that the photo represents 
 training_data = datasets.FashionMNIST(
         root='data',
         train=True,
@@ -51,7 +53,7 @@ print(f"Using {device} device")  # I dont
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        self.flatten = nn.Flatten()
+        self.flatten = nn.Flatten()  # default is start_dim=1, end_dim=-1
         self.linear_relu_stack = nn.Sequential(
                 nn.Linear(28 * 28, 512),
                 nn.ReLU(),
@@ -59,7 +61,6 @@ class NeuralNetwork(nn.Module):
                 nn.ReLU(),
                 nn.Linear(512, 10)
                 )
-
     def forward(self, x):
         x = self.flatten(x)
         logits = self.linear_relu_stack(x)

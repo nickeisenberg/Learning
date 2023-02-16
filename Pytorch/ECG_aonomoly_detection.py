@@ -18,13 +18,18 @@ test = loadarff(path + 'ECG5000_TEST.arff')
 
 # combine the test and training data into one data frame and then shuffle
 # the data.
+np.random.seed(1)
 df_train = pd.DataFrame(train[0])
 df_test = pd.DataFrame(test[0])
+df = pd.concat((df_train, df_test)).sample(frac=1)
 
-df = pd.concat((df_train, df_test)).sample(frac=1.0)
+df_train.shape
+df_test.shape
+df.shape
 
-df_heart = deepcopy(df[df.columns.values[: -1]])
-df_target = deepcopy(pd.DataFrame(df['target'].astype(int)))
+df_heart = deepcopy(df[df.columns.values[: -1]]).reset_index(drop=True)
+df_target = deepcopy(
+        pd.DataFrame(df['target'].astype(int))).reset_index(drop=True)
 
 df_heart.head()
 df_target.head()
@@ -121,15 +126,30 @@ fig.show()
 # Now we can start with getting the training set for the autoencoder
 # We will train the autoecoder on the normal heartbeats.
 
-df_normal_heart = df_heart.loc[df_target.target == 1]
+df_heart_normal = deepcopy(
+        df_heart.loc[df_target.target == 1]
+        )
+df_heart_normal_targets = deepcopy(
+        df_target.loc[df_target.target == 1]
+        )
+
+df_heart_normal.shape
+df_heart_normal_targets.shape
 
 # We can combine all the other anomalies into one 'anomalies' dataframe'
-df_heart_anamoly = df_heart.loc[df_target.target != 1]
+df_heart_anamoly = deepcopy(
+        df_heart.loc[df_target.target != 1]
+        )
+df_heart_anomaly_targets = deepcopy(
+        df_target.loc[df_target.target != 1]
+        )
+
+df_heart_anamoly.shape
+df_heart_anomaly_targets.shape
 
 # Now we can split the normal heart rates into train, val and testing groups.
-def train_val_test(df, tr_v_split=(.7, .15), seed=1):
+def train_val_test(df:pd.DataFrame, tr_v_split=(.7, .15)):
     inds = df.index.values
-    np.random.shuffle(inds)
     train_upper = int(len(inds) * tr_v_split[0])
     train_inds = inds[: train_upper]
     val_upper = train_upper + int(len(inds) * tr_v_split[1])
@@ -140,11 +160,18 @@ def train_val_test(df, tr_v_split=(.7, .15), seed=1):
     test_df = df.loc[test_inds]
     return train_df, val_df, test_df
 
-train_df, val_df, test_df = train_val_test(df_normal_heart)
+train_df, val_df, test_df = train_val_test(df_heart_normal)
+
+df_heart_normal.shape
+train_df.shape
+val_df.shape
+test_df.shape
 
 # we need to convert these dataframes into tensors. We want the shape to be
 # seq_len x no of features. 
-def make_dataset(df):
+
+#-This way forces the batchsize to be one----------
+def make_dataset(df, batch_size=1):
     signals = df.values
     dataset = [
             torch.tensor(s, dtype=torch.float32).unsqueeze(1) for s in signals
@@ -158,17 +185,44 @@ train_dataset, sig_len, nfeat = make_dataset(train_df)
 val_dataset, _, _ = make_dataset(val_df)
 test_normal_dataset, _, _ = make_dataset(test_df)
 test_anomaly_dataset, _, _ = make_dataset(df_heart_anamoly)
+#--------------------------------------------------
+
+#-This way allows for custom batch sizes-----------
+# We need float32, It needs to be specified. LSTM layers require this
+train_arr = deepcopy(torch.tensor(train_df.values, dtype=torch.float32))
+val_arr = deepcopy(torch.tensor(val_df.values, dtype=torch.float32))
+test_norm_arr = deepcopy(torch.tensor(test_df.values, dtype=torch.float32))
+test_anom_arr = deepcopy(
+        torch.tensor(df_heart_anamoly.values, dtype=torch.float32))
+
+batch_size = 16
+train_dataloader = torch.utils.data.DataLoader(
+        train_arr, batch_size=batch_size)
+val_dataloader = torch.utils.data.DataLoader(
+        val_arr, batch_size=batch_size)
+test_normal_dataloader = torch.utils.data.DataLoader(
+        test_norm_arr, batch_size=batch_size)
+test_anomaly_dataloader = torch.utils.data.DataLoader(
+        test_anom_arr, batch_size=batch_size)
+
+for d in test_anomaly_dataloader:
+    print(d.unsqueeze(-1).shape)
+    print(d.dtype)
+    break
+#--------------------------------------------------
 
 # Now we will make an encoder class. 
+# This has been updated to handle a different batch size
 class Encoder(nn.Module):
-    def __init__(self, sig_len, nfeat, embedding_dim=64):
+    def __init__(self, sig_len, nfeat, batch_size, embedding_dim=64):
         super().__init__()
         self.sig_len = sig_len
         self.nfeat = nfeat
         self.embedding_dim = embedding_dim
+        self.batch_size = batch_size
         self.hidden_dim = embedding_dim * 2
         self.rnn1 = nn.LSTM(
-                input_size=nfeat,
+                input_size=self.nfeat,
                 hidden_size=self.hidden_dim,
                 num_layers=1,
                 batch_first=True)
@@ -178,25 +232,35 @@ class Encoder(nn.Module):
                 num_layers=1,
                 batch_first=True)
     def forward(self, x):
-        x = x.reshape((1, self.sig_len, self.nfeat))
+        # x = x.reshape((1, self.sig_len, self.nfeat))
+        x = x.unsqueeze(-1)
+        print(x.shape)
         x, _ = self.rnn1(x)
+        print(x.shape)
         x, (hidden_n, _) = self.rnn2(x)
-        return hidden_n.reshape((self.nfeat, self.embedding_dim))
+        print(x.shape)
+        print(hidden_n.shape)
+        # return hidden_n.reshape((self.nfeat, self.embedding_dim))
+        return hidden_n.reshape((self.batch_size, self.embedding_dim))
 
 #--------------------------------------------------
 xx = train_dataset[0]
-
-XX1 = nn.LSTM(input_size=1, hidden_size=128)(xx)
-XX2 = nn.LSTM(input_size=128, hidden_size=64)(XX1[0])
 xx.shape
+xx.dtype
+
+xx = torch.randn((10, 140, 1))
+XX1 = nn.LSTM(input_size=1, batch_first=True, hidden_size=128)(xx)
 XX1[0].shape
-XX2[0].shape
+XX2 = nn.LSTM(input_size=128, batch_first=True, hidden_size=64)(XX1[0])
 XX2[1][0].shape
 
-en = Encoder(sig_len=140, nfeat=1)
-enXX = en.forward(xx)
-xx.shape
-enXX.shape
+
+en = Encoder(sig_len=140, nfeat=1, batch_size=batch_size)
+for inp in train_dataloader:
+    inp.shape
+    xxx = en.forward(inp)
+    xxx.shape
+    break
 #--------------------------------------------------
 
 # now we need to write an decoder class
@@ -238,8 +302,8 @@ XX4 = nn.Linear(128, 1)(XX3)
 XX4.shape
 
 decoder = Decoder(sig_len=140)
+xx = torch.randn((1, 64))
 XX = decoder.forward(xx)
-xx.shape
 XX.shape
 #--------------------------------------------------
 
@@ -257,9 +321,7 @@ class Autoencoder(nn.Module):
 
 #--------------------------------------------------
 xx = train_dataset[0]
-
 autoencoder = Autoencoder(140, 1, 64)
-
 XX = autoencoder(xx)
 print(f'input shape {xx.shape}')
 print(f'output shape {XX.shape}')
