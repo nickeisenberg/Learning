@@ -17,10 +17,12 @@ for i in range(no_particles):
 
 combined_df = pd.concat((d for d in particle_dfs.values()))
 
-fig = px.scatter(combined_df,
-           x="x_pos", y="y_pos",
-           animation_frame="time",
-           animation_group="name",
-           size="weight", color="name", hover_name="name",
-           size_max=55, range_x=[-25, 25], range_y=[-25, 25])
+fig = px.scatter(
+        combined_df,
+        x="x_pos", y="y_pos",
+        animation_frame="time",
+        animation_group="name",
+        size="weight", color="name", hover_name="name",
+        size_max=55, range_x=[-25, 25], range_y=[-25, 25]
+        )
 fig.show()
