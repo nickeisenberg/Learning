@@ -25,4 +25,6 @@ fig = px.scatter(
         size="weight", color="name", hover_name="name",
         size_max=55, range_x=[-25, 25], range_y=[-25, 25]
         )
+fig.layout.updatemenus[0].buttons[0].args[1]['frame']['duration'] = 50
+# fig.layout.updatemenus[0].buttons[0].args[1]['frame']['transition'] = 500
 fig.show()
