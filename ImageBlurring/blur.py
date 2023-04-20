@@ -72,12 +72,27 @@ class Blur:
                 ddepth=-1,
                 kernel=kernel)
 
-blurred_img, g_kernel = Blur(img).gaussian(0, 1, 5, return_kernel=True)
+img_b, g_kernel = Blur(img).gaussian(0, 1, 5, return_kernel=True)
 
 fig, ax = plt.subplots(1, 2)
 ax[0].imshow(img)
-ax[1].imshow(blurred_img)
+ax[1].imshow(img_b)
 plt.show()
+
+# The following shows that when blurring the image, the convolution happens
+# channel by channel.
+img0 = img[:,:,0]
+img1 = img[:,:,1]
+img2 = img[:,:,2]
+
+img0_b = Blur(img0).gaussian(0, 1, 5)
+img1_b = Blur(img1).gaussian(0, 1, 5)
+img2_b = Blur(img2).gaussian(0, 1, 5)
+
+img_b_ = np.dstack((img0_b, img1_b, img2_b))
+
+print((img_b - img_b_).min())
+print((img_b - img_b_).max())
 
 #-------------------------------------------------- 
 def gaussian(mu, std, dim_len):
