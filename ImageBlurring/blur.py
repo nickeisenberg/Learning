@@ -188,4 +188,3 @@ fig = plt.figure()
 ax = fig.add_subplot(1, 1, 1, projection='3d')
 ax.plot_surface(X, Y, Z)
 plt.show()
-
