@@ -15,17 +15,23 @@ ax[1].imshow(img[:,:,1])
 ax[2].imshow(img[:,:,2])
 plt.show()
 
-def gaussian_bump_3d(mu, std, dim_len):
+def gaussian_bump_3d(mu, std, dim_len, return_grid=False):
     dim_len = int((dim_len - 1) / 2)
-    dom = np.arange(-dim_len, dim_len + 1, 1)
-    pairs = it.product(dom, dom)
-    surface = np.zeros((2 * dim_len + 1, 2 * dim_len + 1))
-    for pair in pairs:
-        indx = np.where(dom == pair[1])[0][0]
-        indy = np.where(dom == pair[0])[0][0]
-        r = np.sqrt(pair[0] ** 2 + pair[1] ** 2)
-        surface[indy, indx] = norm(mu, std).pdf(r)
-    return surface / surface.sum()
+    dom = np.arange(-dim_len, dim_len + 1, 1) + mu
+    X, Y = np.meshgrid(dom, dom)
+    r = np.sqrt((X - mu) ** 2 + (Y - mu) ** 2)
+    surface = (1 / np.sqrt(2 * np.pi * std ** 2)) * np.exp(-(r ** 2) / (2 * std))
+    if return_grid:
+        return X, Y, surface / surface.sum()
+    else:
+        return surface / surface.sum()
+
+X, Y, Z = gaussian(0, 1, 21, return_grid=True)
+
+fig = plt.figure()
+ax = fig.add_subplot(1, 1, 1, projection='3d')
+ax.plot_surface(X, Y, Z)
+plt.show()
 
 class Blur:
 
@@ -52,14 +58,12 @@ class Blur:
     def gaussian(self, mu, std, dim_len, return_kernel=False):
         dim_len = int((dim_len - 1) / 2)
         dom = np.arange(-dim_len, dim_len + 1, 1)
-        pairs = it.product(dom, dom)
-        kernel = np.zeros((2 * dim_len + 1, 2 * dim_len + 1))
-        for pair in pairs:
-            indx = np.where(dom == pair[1])[0][0]
-            indy = np.where(dom == pair[0])[0][0]
-            r = np.sqrt(pair[0] ** 2 + pair[1] ** 2)
-            kernel[indy, indx] = norm(mu, std).pdf(r)
-        kernel = kernel / kernel.sum()
+        X, Y = np.meshgrid(dom, dom)
+        r = np.sqrt((X - mu) ** 2 + (Y - mu) ** 2)
+
+        kernel = (1 / np.sqrt(2 * np.pi * std ** 2))
+        kernel *= np.exp(-(r ** 2) / (2 * std))
+        kernel /= kernel.sum()
 
         if return_kernel:
             return cv2.filter2D(
@@ -168,6 +172,21 @@ est_blur_image_2 = cv2.filter2D(
 err2 = est_blur_image - img_b
 np.sum([err2 != 0])
 
+# When using cv2.filter2D with a 3d kernel, cv2.filter2d automatically
+# zips together each channel of the image with the corresponding channel
+# of the kernel and then convolves accordingingly. See the following.
+est_blur_image_2_ = []
+for i in range(3):
+    img_c = img[:, :, i]
+    ker_c = ker_est[:, :, i]
+    est_blur_image_2_.append(
+        cv2.filter2D(src=img_c, ddepth=-1, kernel=ker_c)
+    )
+est_blur_image_2_ = np.dstack(est_blur_image_2_)
+
+err2_ = (est_blur_image_2_ - est_blur_image_2)
+print(np.sum(err2_ != 0))
+
 #-------------------------------------------------- 
 
 def gaussian(mu, std, dim_len, return_grid=False):
@@ -180,7 +199,6 @@ def gaussian(mu, std, dim_len, return_grid=False):
         return X, Y, surface
     else:
         return surface
-
 
 X, Y, Z = gaussian(0, 1, 21, return_grid=True)
 
