@@ -1,3 +1,5 @@
+import praw
+
 # type(subreddit) = praw.models.reddit.subreddit.Subreddit
 # sort_by: 'hot', 'new', 'top', 'rising'
 # If search != None and type(search) = str then that will override sort_by
@@ -70,7 +72,7 @@ def comment_replies(submission_list=None,
 
     return submissions_comments_replies
 
-def dataset_makers(subs_coms_replies, fn):
+def dataset_makers_scr(subs_coms_replies, fn):
     with open(fn, 'w') as f:
         for isub, sub in enumerate(list(submissions[:1])):
             f.write(f"Title_{isub} -- {sub.title}")
@@ -81,4 +83,34 @@ def dataset_makers(subs_coms_replies, fn):
                 for ir, rep in enumerate(subs_coms_reps[sub][com]):
                     f.write(f"Reply_{isub}.{ic}.{ir} -- {rep.body}")
                     f.write('\n')
+    return None
+
+def get_the_comments(subreddit,
+                     search,
+                     client_id,
+                     client_secret,
+                     user_agent):
+
+    praw_sub = praw.Reddit(
+        client_id=client_id,
+        client_secret=client_secret,
+        user_agent=user_agent).subreddit(subreddit)
+
+    # get the daily discussion submissions
+    subs = submission_getter(subreddit=praw_sub,
+                             search=search,
+                             no_of_submissions=100)
+    
+    # get the comments
+    coms = comment_getter(submission_list=subs,
+                          no_of_comments=100)
+
+    return coms
+
+def dataset_makers_sc(com_dic, fn):
+    with open(fn, 'w') as f:
+        for s in com_dic.keys():
+            f.write(f'!!post_title!!: {s.title}\n')
+            for c in com_dic[s]:
+                f.write(f'!!comment!!: {c.body}\n')
     return None
