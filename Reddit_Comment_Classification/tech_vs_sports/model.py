@@ -14,22 +14,27 @@ processeser.get_words(
 processeser.get_words(
     f'{path}sport_coms.txt', ignore=['!!body!!'], from_file=True
 )
-processeser.get_vocab(no_words=10000)
+
+no_words=100
+processeser.get_vocab(no_words=no_words)
 
 # encode the comments and create the datasets
-dataset = rfunc.TextDataset(10000, 1)
+dataset = rfunc.TextDataset(no_words + 1, 1)
 
 text_encoder = rfunc.TextEncoding(vocab=processeser.vocab).one_hot_encoding
+
 dataset.from_txt_file(
     encoder=text_encoder,
     path_to_txt_file=f'{path}tech_coms.txt',
     labels = 0
 )
+
 dataset.from_txt_file(
     encoder=text_encoder,
     path_to_txt_file=f'{path}sport_coms.txt',
     labels = 1
 )
+
 dataset.clean_up_nan()
 
 # define the model
