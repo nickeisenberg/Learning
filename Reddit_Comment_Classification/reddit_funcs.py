@@ -1,4 +1,8 @@
 import praw
+import string
+import numpy as np
+import emoji
+import random
 
 # type(subreddit) = praw.models.reddit.subreddit.Subreddit
 # sort_by: 'hot', 'new', 'top', 'rising'
@@ -114,3 +118,182 @@ def dataset_makers_sc(com_dic, fn):
             for c in com_dic[s]:
                 f.write(f'!!comment!!: {c.body}\n')
     return None
+
+
+class TextProcessing:
+
+    def __init__(self):
+        self.words = {}
+        self.word_counts = {}
+        self.vocab = {}
+        self.punc = string.punctuation + "‘’'“”"
+        self.trans = str.maketrans('', '', string.punctuation + "‘’'“”")
+
+    def strp_lower_rmpunc(
+        self,
+        input,
+        from_file=False,
+        to_file=False,
+        to_file_path=None,
+        return_output=True
+        ):
+        output = []
+        if from_file:
+            with open(input, 'r') as op:
+                lines = op.readlines()
+                for line in lines:
+                    line = line.strip().lower().translate(self.trans)
+                    output.append(line)
+                    if to_file:
+                        with open(to_file_path, 'a') as to_f:
+                            to_f.write(line)
+        else:
+            input = input.strip().lower().translate(self.trans)
+            if to_file:
+                with open(to_file_path, 'a') as to_f:
+                    to_f.write(input)
+            output = input
+        if return_output:
+            return output
+
+    def get_words(
+        self,
+        input,
+        ignore=[],
+        from_file=False,
+        ):
+
+        if from_file:
+            with open(input, 'r') as op:
+                lines = op.readlines()
+                for line in lines:
+                    line = line.strip().lower().translate(self.trans)
+                    for word in line.split(' '):
+                        if emoji.is_emoji(word) or word in ignore:
+                            continue
+                        if word not in self.words.keys():
+                            self.words[word] = len(self.words)
+                            self.word_counts[word] = 1
+                        else:
+                            self.word_counts[word] += 1
+
+        else:
+            for word in input:
+                if emoji.is_emoji(word):
+                    continue
+                if word not in self.words.keys():
+                    self.words[word] = len(self.words)
+                    self.word_counts[word] = 1
+                else:
+                    self.word_counts[word] += 1
+
+        return None
+
+    def get_vocab(self, no_words=10000):
+
+        self.vocab['[UNK]'] = 0
+        top_counts = np.array([*self.word_counts.values()])
+        top_counts = top_counts[np.argsort(top_counts)][:: -1]
+        cutoff_ind = min(no_words - 1, len(self.words) - 1)
+        cutoff_val = top_counts[cutoff_ind]
+        
+        for word in self.words.keys():
+            if self.word_counts[word] >= cutoff_val:
+                if word not in self.vocab.keys():
+                    self.vocab[word] = len(self.vocab) + 1
+            if len(self.vocab) == 10000:
+                break
+
+class TextEncoding():
+
+    def __init__(self, vocab):
+        self.encoder = vocab
+        self.decoder = {v: k for k, v in vocab.items()}
+
+    def one_hot_encoding(self, line):
+        one_hot = np.zeros(len(self.encoder))
+        for word in line.split(' '):
+            if word in self.encoder.keys():
+                one_hot[self.encoder[word] - 1] = 1
+            else:
+                one_hot[0] = 1
+        return one_hot
+
+    def vectorize_encoding(self, line):
+        vec = []
+        for word in line.split(' '):
+            if word in self.encoder.keys():
+                vec.append(self.encoder[word])
+            else:
+                vec.append(0)
+        vec = np.array(vec)
+        return vec
+
+    def vectorize_decoding(self, vec):
+        line = []
+        for v in vec:
+            line.append(self.decoder[v])
+        return line
+
+class TextDataset:
+
+    def __init__(self, x_dim, y_dim):
+        self.x_train = np.zeros(x_dim) * np.nan
+        self.y_train = np.zeros(y_dim) * np.nan
+        self.x_val = np.zeros(x_dim) * np.nan
+        self.y_val = np.zeros(y_dim) * np.nan
+        self.x_test = np.zeros(x_dim) * np.nan
+        self.y_test = np.zeros(y_dim) * np.nan
+
+    def from_txt_file(
+        self,
+        encoder,
+        path_to_txt_file,
+        labels,
+        shuffle=True,
+        train_val_test_split=[.7, .15, .15]
+        ):
+
+        dataset_x = []
+        with open(path_to_txt_file, 'r') as opt:
+            lines = opt.readlines()
+            for line in lines:
+                dataset_x.append(encoder(line))
+        dataset_x = np.array(dataset_x)
+        
+        if isinstance(labels, int):
+            labels = np.repeat(labels, dataset_x.shape[0])
+
+        inds = np.arange(dataset_x.shape[0])
+        random.shuffle(inds)
+
+        tr = int(train_val_test_split[0] * inds.size)
+        vl = tr + int(train_val_test_split[1] * inds.size)
+
+        self.x_train = np.vstack((self.x_train, dataset_x[: tr, :]))
+        self.x_val = np.vstack((self.x_val, dataset_x[tr: vl, :]))
+        self.x_test = np.vstack((self.x_test, dataset_x[vl:, :]))
+
+        self.y_train = np.hstack((self.y_train, labels[inds][: tr]))
+        self.y_val = np.hstack((self.y_val, labels[inds][tr: vl]))
+        self.y_test = np.hstack((self.y_test, labels[inds][vl:]))
+
+        return None
+
+    def clean_up_nan(self):
+        self.x_train = self.x_train[1:]
+        self.y_train = self.y_train[1:]
+        self.x_val = self.x_val[1:]
+        self.y_val = self.y_val[1:]
+        self.x_test = self.x_test[1:]
+        self.y_test = self.y_test[1:]
+
+
+
+ 
+
+
+
+
+
+
