@@ -4,9 +4,11 @@ import hvplot.pandas
 import pandas as pd
 import numpy as np
 
-pn.extension(design='material')
+# for notebooks
+# pn.extension(design='material')
 
-csv_file = ("https://raw.githubusercontent.com/holoviz/panel/main/examples/assets/occupancy.csv")
+csv_file = "https://raw.githubusercontent.com"
+csv_file += "/holoviz/panel/main/examples/assets/occupancy.csv"
 data = pd.read_csv(csv_file, parse_dates=["date"], index_col=['date'])
 
 def view_hvplot(avg, highlight):
