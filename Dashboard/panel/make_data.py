@@ -6,26 +6,31 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+AXIS = ['C1', 'C2']
+SHOTS = np.arange(4000, 4040)
+
+np.random.seed(1)
+SENSOR_SHOTS = {
+    'C1': {
+        'Sensor_1': np.random.choice(SHOTS, 19, replace=False),
+        'Sensor_2': np.random.choice(SHOTS, 13, replace=False),
+        'Sensor_3': np.random.choice(SHOTS, 9, replace=False),
+        'Sensor_4': np.random.choice(SHOTS, 18, replace=False),
+    },
+    'C2': {
+        'Sensor_1': np.random.choice(SHOTS, 13, replace=False),
+        'Sensor_2': np.random.choice(SHOTS, 14, replace=False),
+        'Sensor_3': np.random.choice(SHOTS, 18, replace=False),
+        'Sensor_4': np.random.choice(SHOTS, 2, replace=False),
+    }
+}
+
 class make_data():
 
     def __init__(self, path='./'):
         self.path = path
-        self.axis = ['C1', 'C2']
-        self.shots = np.arange(4000, 4040)
-        self.sensor_shots = {
-            'C1': {
-                'Sensor_1': np.random.choice(self.shots, 19, replace=False),
-                'Sensor_2': np.random.choice(self.shots, 13, replace=False),
-                'Sensor_3': np.random.choice(self.shots, 9, replace=False),
-                'Sensor_4': np.random.choice(self.shots, 18, replace=False),
-            },
-            'C2': {
-                'Sensor_1': np.random.choice(self.shots, 13, replace=False),
-                'Sensor_2': np.random.choice(self.shots, 14, replace=False),
-                'Sensor_3': np.random.choice(self.shots, 18, replace=False),
-                'Sensor_4': np.random.choice(self.shots, 2, replace=False),
-            }
-        }
+        self.axis = AXIS
+        self.sensor_shots = SENSOR_SHOTS
         self._generate()
         self._generate_parquet()
     
@@ -49,10 +54,14 @@ class make_data():
             os.makedirs(to_path)
             for sen, d in self.sensor_data[k].items():
                 parq = pa.Table.from_pandas(
-                    pd.DataFrame(d)
+                    pd.DataFrame(
+                        data=d,
+                        columns=self.sensor_shots[k][sen]
+                    )
                 )
                 pq.write_table(parq, os.path.join(to_path, f'{sen}.parquet'))
 
-inst = make_data(path='./data')
+if __name__ == '__main__':
+    inst = make_data(path='./data')
 
 
