@@ -20,7 +20,7 @@ class Style(Controls):
 
 class df_exp(Viewer):
 
-    kind = param.Selector
+    kind = param.Selector()
 
     style = param.ClassSelector(class_=Style)
 
@@ -56,7 +56,31 @@ class df_exp(Viewer):
         self._tabs = pn.Tabs(
             tabs_location='left', width=400
         )
-           
+        self._tabs = pn.Tabs(
+            tabs_location='left', width=400
+        )
+        self._controllers = {
+            cls.name.lower(): cls(df, explorer=self, **params)
+            for cls, params in controller_params.items()
+        }
+        self.param.set_param(**self._controllers)
+        self.param.watch(self._plot, list(self.param))
+        for controller in self._controllers.values():
+            controller.param.watch(self._plot, list(controller.param))
+        self._alert = pn.pane.Alert(
+            alert_type='danger', visible=False, sizing_mode='stretch_width'
+        )
+        self._layout = pn.Column(
+            self._alert,
+            pn.Row(
+                self._tabs,
+                pn.layout.HSpacer(),
+                sizing_mode='stretch_width'
+            ),
+            pn.layout.HSpacer(),
+            sizing_mode='stretch_both'
+        )
+        self._toggle_controls()
 
     
     def _toggle_controls(self, event=None):
@@ -89,3 +113,8 @@ class df_exp(Viewer):
             # ):
             #     tabs.insert(5, ('Colormapping', self.colormapping))
         self._tabs[:] = tabs
+
+inst = df_exp(df=df, params={'x': 'index', 'y': 'col_1'})
+
+
+
