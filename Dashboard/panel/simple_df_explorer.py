@@ -4,6 +4,7 @@ import param
 import pyarrow.parquet as pq
 import numpy as np
 from hvplot.ui import Controls
+import hvplot.pandas
 
 GEOM_KINDS = ['paths', 'polygons', 'points']
 STATS_KINDS = [
@@ -28,12 +29,12 @@ class df_exp(Viewer):
         return self._layout
 
     def __init__(self, df, **params):
-        x, y = params.get('x'), params.get('y')
-        if 'y' in params:
-            if isinstance(params['y'], list):
-                params['y_multi'] = params.pop('y') 
-            else:
-                params['y_multi'] = [params['y']]
+        # x, y = params.get('x'), params.get('y')
+        # if 'y' in params:
+        #     if isinstance(params['y'], list):
+        #         params['y_multi'] = params.pop('y') 
+        #     else:
+        #         params['y_multi'] = [params['y']]
         controller_params = {}
         controls = [
             p.class_
@@ -71,7 +72,7 @@ class df_exp(Viewer):
             alert_type='danger', visible=False, sizing_mode='stretch_width'
         )
         self._layout = pn.Column(
-            self._alert,
+            # self._alert,
             pn.Row(
                 self._tabs,
                 pn.layout.HSpacer(),
@@ -81,6 +82,7 @@ class df_exp(Viewer):
             sizing_mode='stretch_both'
         )
         self._toggle_controls()
+        self._plot()
 
     
     def _toggle_controls(self, event=None):
@@ -114,7 +116,23 @@ class df_exp(Viewer):
             #     tabs.insert(5, ('Colormapping', self.colormapping))
         self._tabs[:] = tabs
 
+    def _plot(self):
+        x, y = self.params['x'], self.params['y']
+        if x in ['index', None]:
+            try:
+                self._hvplot = self._data.hvplot.line(y=y)
+                self._hvpane = pn.pane.HoloViews(
+                    self._hvplot,
+                    sizing_mode='stretch_width',
+                    margin=(0, 20, 0, 20)
+                )
+                self._layout[0][1] = self._hvpane
+                self._alert.visible = False
+            except:
+                self._alert.param.set_param(
+                    object='rendering error',
+                    visible=True
+                )
+
 inst = df_exp(df=df, params={'x': 'index', 'y': 'col_1'})
-
-
-
+inst.show()
