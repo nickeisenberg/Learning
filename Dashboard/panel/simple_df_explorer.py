@@ -4,6 +4,7 @@ import param
 import pyarrow.parquet as pq
 import numpy as np
 from hvplot.ui import Controls
+from holoviews.core.util import datetime_types, dt_to_int, is_number, max_range
 import hvplot.pandas
 
 GEOM_KINDS = ['paths', 'polygons', 'points']
@@ -16,14 +17,47 @@ TWOD_KINDS = [
 
 df = pq.read_table('./data/brownian_motion.parquet').to_pandas()
 
-class Style(Controls):
-    alpha = param.Magnitude(default=1)
+pn.widgets.StaticText
 
+class New_Tab(Controls):
+    text = param.String(default='A place to add widgets')
+
+class Axes(Controls):
+
+    xlim = param.Range()
+
+    ylim = param.Range()
+
+    def __init__(self, data, **params):
+        super().__init__(data, **params)
+        self._update_ranges()
+
+    @param.depends('explorer.xlim', 'explorer.ylim',  watch=True)
+    def _update_ranges(self):
+        xlim = self.explorer.xlim()
+        if xlim is not None and is_number(xlim[0]) and is_number(xlim[1]) and xlim[0] != xlim[1]:
+            xlim = self._convert_to_int(xlim)
+            self.param.xlim.precedence = 0
+            self.param.xlim.bounds = xlim
+        else:
+            self.param.xlim.precedence = -1
+        ylim = self.explorer.ylim()
+        if ylim is not None and is_number(ylim[0]) and is_number(ylim[1]) and ylim[0] != ylim[1]:
+            ylim = self._convert_to_int(ylim)
+            self.param.ylim.precedence = 0
+            self.param.ylim.bounds = ylim
+        else:
+            self.param.ylim.precedence = -1
+    
 class df_exp(Viewer):
 
-    kind = param.Selector()
+    axis = param.Selector()
+    sensor = param.Selector()
+    shot = param.Selector()
+    
+    axes = param.ClassSelector(class_=Axes)
 
-    style = param.ClassSelector(class_=Style)
+    new_tab = param.ClassSelector(class_=New_Tab)
 
     def __panel__(self):
         return self._layout
@@ -50,7 +84,7 @@ class df_exp(Viewer):
         super().__init__(**params)
         self._data = df
         self._controls = pn.Param(
-            self.param, parameters=['kind'],
+            self.param, parameters=['axis', 'sensor', 'shot'],
             sizing_mode='stretch_width', max_width=300, show_name=False,
         )
         self.param.watch(self._toggle_controls, 'kind')
@@ -108,7 +142,10 @@ class df_exp(Viewer):
         tabs = [('Fields', self._controls)]
         if visible:
             tabs += [
-                ('Style', self.style),
+                ('Axes', self.axes),
+                ('tab2', self.new_tab),
+                ('tab3', self.new_tab),
+                ('tab4', self.new_tab),
             ]
             # if event and event.new not in (
             #     'area', 'kde', 'line', 'ohlc', 'rgb', 'step'
@@ -135,4 +172,5 @@ class df_exp(Viewer):
                 )
 
 inst = df_exp(df=df, params={'x': 'index', 'y': 'col_1'})
+
 inst.show()
