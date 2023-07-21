@@ -7,13 +7,6 @@ from hvplot.ui import Controls
 import hvplot.pandas
 from make_data import SENSOR_SHOTS, AXIS
 
-class New_Tab(Controls):
-    text = param.String(default='A place to add widgets')
-
-class Axes(Viewer):
-    xlim = param.Range()
-    ylim = param.Range()
-
 
 class df_exp(Viewer):
 
@@ -29,18 +22,34 @@ class df_exp(Viewer):
         [*SENSOR_SHOTS['C1'][default_sensor]]
     )
 
-    axes = param.ClassSelector(class_=Axes)
-    new_tab = param.ClassSelector(class_=New_Tab)
+    text = param.String(default='A place to add widgets')
+
+    xlim = param.Range()
+    ylim = param.Range()
 
     def __panel__(self):
         return self._layout
 
     def __init__(self, **params):
+
         super().__init__(**params)
-        self._controls = pn.Param(
+
+        # First tab controls
+        self._main_controls = pn.Param(
             self.param, parameters=['axis', 'sensor', 'shot'],
             sizing_mode='stretch_width', max_width=300, show_name=False,
         )
+
+        self._axes_controls = pn.Param(
+            self.param, parameters=['xlim', 'ylim'],
+            sizing_mode='stretch_width', max_width=300, show_name=False,
+        )
+
+        self._nt_controls = pn.Param(
+            self.param, parameters=['text'],
+            sizing_mode='stretch_width', max_width=300, show_name=False,
+        )
+
         self._tabs = pn.Tabs(
             tabs_location='left', width=400
         )
@@ -48,7 +57,6 @@ class df_exp(Viewer):
             alert_type='danger', visible=False, sizing_mode='stretch_width'
         )
         self._layout = pn.Column(
-            # self._alert,
             pn.Row(
                 self._tabs,
                 pn.layout.HSpacer(),
@@ -57,6 +65,7 @@ class df_exp(Viewer):
             pn.layout.HSpacer(),
             sizing_mode='stretch_both'
         )
+        
         self._toggle_controls()
         self._retrieve_parquet()
         self._plot()
@@ -77,19 +86,14 @@ class df_exp(Viewer):
 
     @param.depends('axis', 'sensor', 'shot', watch=True)
     def _toggle_controls(self):
-        # Control high-level parameters
-        visible = True
         parameters = ['axis', 'sensor', 'shot']
-        self._controls.parameters = parameters
-
+        self._main_controls.parameters = parameters
         # Control other tabs
-        tabs = [('Fields', self._controls)]
-        if visible:
-            tabs += [
-                ('Axes', self.axes),
-                ('tab3', self.new_tab),
-                ('tab4', self.new_tab),
-            ]
+        tabs = [
+            ('Fields', self._main_controls),
+            ('Axes', self._axes_controls),
+            ('nt', self._nt_controls)
+        ]
         self._tabs[:] = tabs
 
     @param.depends('axis', 'sensor', 'shot', watch=True)
@@ -106,6 +110,7 @@ class df_exp(Viewer):
         except:
             print(self.shot)
             print(self.shot)
+
 
 inst = df_exp()
 
