@@ -4,13 +4,16 @@ import param
 import pyarrow.parquet as pq
 import numpy as np
 from hvplot.ui import Controls
-from holoviews.core.util import datetime_types, dt_to_int, is_number, max_range
 import hvplot.pandas
-import pandas as pd
 from make_data import SENSOR_SHOTS, AXIS
 
 class New_Tab(Controls):
     text = param.String(default='A place to add widgets')
+
+class Axes(Viewer):
+    xlim = param.Range()
+    ylim = param.Range()
+
 
 class df_exp(Viewer):
 
@@ -26,6 +29,7 @@ class df_exp(Viewer):
         [*SENSOR_SHOTS['C1'][default_sensor]]
     )
 
+    axes = param.ClassSelector(class_=Axes)
     new_tab = param.ClassSelector(class_=New_Tab)
 
     def __panel__(self):
@@ -82,7 +86,7 @@ class df_exp(Viewer):
         tabs = [('Fields', self._controls)]
         if visible:
             tabs += [
-                ('tab2', self.new_tab),
+                ('Axes', self.axes),
                 ('tab3', self.new_tab),
                 ('tab4', self.new_tab),
             ]
@@ -90,7 +94,6 @@ class df_exp(Viewer):
 
     @param.depends('axis', 'sensor', 'shot', watch=True)
     def _plot(self):
-        #x, y = self.params['x'], self.params['y']
         try:
             self._hvplot = self._parq_df.hvplot.line(y=str(self.shot))
             self._hvpane = pn.pane.HoloViews(
