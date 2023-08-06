@@ -15,13 +15,7 @@ train_ims = torch.stack([
         im, dtype=torch.uint8
     ).reshape((1, 28, 28)) / 255 for im in train_ims
 ])
-
-def vectorize(idx):
-    vec = torch.zeros(10)
-    vec[idx] = 1
-    return vec
-
-train_labs = torch.stack([vectorize(id) for id in train_labs])
+train_labs = torch.tensor(train_labs)
 
 class ImageDataset(Dataset):
 
@@ -45,14 +39,12 @@ dataset_inds = np.arange(len(train_ims))
 random.shuffle(dataset_inds)
 
 train_dataset = ImageDataset(
-    train_ims[dataset_inds[:50000]], train_labs[dataset_inds[:50000]]
+    train_ims[dataset_inds[:50000]], train_ims[dataset_inds[:50000]]
 )
 
 val_dataset = ImageDataset(
-    train_ims[dataset_inds[50000:]], train_labs[dataset_inds[50000:]]
+    train_ims[dataset_inds[50000:]], train_ims[dataset_inds[50000:]]
 )
-
-train_dataset[0][0].shape
 
 train_dataloader = DataLoader(train_dataset, 32)
 val_dataloader = DataLoader(val_dataset, 32)
@@ -137,7 +129,64 @@ class Decoder(nn.Module):
         decoded_image = nn.Sigmoid()(decoded_image)
         return decoded_image
 
-encoder = Encoder(2)
-sampler = Sampler(2)
-decoder = Decoder(2)
+class VAE(nn.Module):
+
+    def __init__(self, encoder, sampler, decoder, latent_dim):
+        super().__init__()
+        self.latent_dim = latent_dim
+        self.encoder = Encoder(latent_dim)
+        self.sampler = Sampler(latent_dim)
+        self.decoder = Decoder(latent_dim)
+
+    def forward(self, inputs):
+        zmean, zlogvar = self.encoder(inputs)
+        samps = self.sampler(zmean, zlogvar)
+        recon = self.decoder(samps)
+        return recon, (zmean, zlogvar)
+
+def rmse_loss(input, target, batched=True):
+    if batched:
+        return torch.mean((input - target) ** 2, axis=(1, 2, 3))
+    else:
+        return torch.mean((input - target) ** 2)
+
+def kl_regularization(z_mean, z_log_var, batched=True):
+    kl_reg = -0.5
+    kl_reg *= (1 + z_log_var - torch.square(z_mean) - torch.exp(z_log_var))
+    if batched:
+        return torch.mean(kl_reg, axis=-1)
+    else:
+        return torch.mean(kl_reg)
+
+vae = VAE(Encoder, Sampler, Decoder, latent_dim)
+optimizer = torch.optim.Adam(vae.parameters(), lr=.001)
+
+def train_one_epoch(epoch_index, dataloader):
+    running_loss = 0.
+    last_loss = 0.
+
+    for i, data in enumerate(dataloader):
+        imgs, _ = data
+
+        optimizer.zero_grad()
+
+        recon_imgs, (zmean, zlogvar) = vae(imgs)
+
+        recon_loss = rmse_loss(recon_imgs, imgs)
+        kl_loss = kl_regularization(zmean, zlogvar)
+
+        loss = torch.sum(recon_loss + kl_loss)
+
+        loss.backward()
+
+        optimizer.step()
+
+        # Track the losses
+
+    return last_loss
+        
+        
+
+
+
 
