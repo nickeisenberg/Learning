@@ -7,6 +7,12 @@ import torch.functional as F
 from torch.utils.data import DataLoader, Dataset
 import random
 
+#|%%--%%| <k7PS0uYOHY|uqWwStcYEn>
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+#|%%--%%| <uqWwStcYEn|p2j73JdljP>
+
 data = MNIST('/Users/nickeisenberg/GitRepos/DataSets_local/MNIST/imgs')
 
 train_ims, train_labs = data.load_training()
@@ -16,6 +22,10 @@ train_ims = torch.stack([
     ).reshape((1, 28, 28)) / 255 for im in train_ims
 ])
 train_labs = torch.tensor(train_labs)
+
+train_ims.size()
+
+#|%%--%%| <p2j73JdljP|ipMv8PFi0O>
 
 class ImageDataset(Dataset):
 
@@ -48,6 +58,8 @@ val_dataset = ImageDataset(
 
 train_dataloader = DataLoader(train_dataset, 32)
 val_dataloader = DataLoader(val_dataset, 32)
+
+#|%%--%%| <ipMv8PFi0O|Exb9JYmqm4>
 
 latent_dim = 2
 
@@ -146,7 +158,7 @@ class VAE(nn.Module):
 
 def rmse_loss(input, target, batched=True):
     if batched:
-        return torch.mean((input - target) ** 2, axis=(1, 2, 3))
+        return torch.mean(torch.sum((input - target) ** 2, axis=(1, 2, 3)))
     else:
         return torch.mean((input - target) ** 2)
 
@@ -154,14 +166,16 @@ def kl_regularization(z_mean, z_log_var, batched=True):
     kl_reg = -0.5
     kl_reg *= (1 + z_log_var - torch.square(z_mean) - torch.exp(z_log_var))
     if batched:
-        return torch.mean(kl_reg, axis=-1)
+        return torch.mean(torch.sum(kl_reg, axis=-1))
     else:
         return torch.mean(kl_reg)
+
+#|%%--%%| <Exb9JYmqm4|yTDNqaKKyM>
 
 vae = VAE(Encoder, Sampler, Decoder, latent_dim)
 optimizer = torch.optim.Adam(vae.parameters(), lr=.001)
 
-def train_one_epoch(epoch_index, dataloader):
+def train_one_epoch(dataloader):
     running_loss = 0.
     last_loss = 0.
 
@@ -175,18 +189,48 @@ def train_one_epoch(epoch_index, dataloader):
         recon_loss = rmse_loss(recon_imgs, imgs)
         kl_loss = kl_regularization(zmean, zlogvar)
 
-        loss = torch.sum(recon_loss + kl_loss)
+        total_loss = recon_loss + kl_loss
 
-        loss.backward()
+        total_loss.backward()
 
         optimizer.step()
 
         # Track the losses
+        running_loss += total_loss.item()
+        if i % 1000 == 999:
+            last_loss = running_loss / 1000 # loss per batch
+            print(f'batch {i + 1} loss: {last_loss}')
+            running_loss = 0.
 
     return last_loss
+
+#|%%--%%| <yTDNqaKKyM|aUGAVHFWXA>
         
-        
+EPOCHS = 30
+best_vloss = 1e6
 
+for epoch in range(EPOCHS):
 
+    print(f'Epoch: {epoch + 1}')
 
+    _ = vae.train()
+    avg_loss = train_one_epoch(dataloader=train_dataloader)
+
+    _ = vae.eval()
+    running_v_loss = 0.0
+    with torch.no_grad():
+        for i, v_data in enumerate(val_dataloader):
+            v_ims, _ = v_data
+            v_guess, (v_zmean, v_zlogvar) = vae(v_ims)
+            v_loss_recon = rmse_loss(v_guess, v_ims)
+            running_v_loss += v_loss_recon
+    
+    avg_vloss = running_v_loss / (i + 1)
+
+    print(f'LOSS Train: {avg_loss} Val: {avg_vloss}')
+    
+    if avg_vloss < best_vloss:
+        best_vloss = avg_vloss
+        model_path = f'mnist_vae.torch'
+        torch.save(vae.state_dict(), model_path)
 
