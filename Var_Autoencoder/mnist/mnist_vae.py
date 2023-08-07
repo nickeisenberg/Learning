@@ -129,7 +129,7 @@ vae_model.summary()
 
 #|%%--%%| <pKGWLDCna6|c59oCk4RK9>
 
-vae_model.load_weights("/mnt/c/Users/EISENBNT/Projects/VAE_MNIST/model_weights.keras")
+vae_model.load_weights("model_weights.keras")
 
 #|%%--%%| <c59oCk4RK9|7bo6CZ9Br4>
 
