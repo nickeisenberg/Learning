@@ -26,7 +26,7 @@ import torchvision.transforms as transforms
 import torchvision
 
 transform = transforms.Compose([
-    transforms.Resize((32, 32)),
+    # transforms.Resize((28, 28)),
     transforms.ToTensor(),
 ])
 
@@ -40,7 +40,6 @@ trainset = torchvision.datasets.MNIST(
 train_dataloader = DataLoader(
     trainset, batch_size=64, shuffle=True
 )
-
 
 # validation set and validation data loader
 valset = torchvision.datasets.MNIST(
@@ -131,7 +130,7 @@ class Encoder(nn.Module):
         self.conv4 = nn.Conv2d(
             in_channels=32,
             out_channels=64,
-            kernel_size=4,
+            kernel_size=3,
             stride=2,
             padding=0
         )
@@ -148,12 +147,12 @@ class Encoder(nn.Module):
         x = nn.ReLU()(x)
         x = self.conv4(x)
         x = nn.ReLU()(x)
-        batch = x.shape[0]
-        x = F.adaptive_avg_pool2d(x, 1).reshape(batch, -1)
+        x = x.reshape(x.shape[0], -1)
         x = self.linear1(x)
         z_mean = self.z_mean_(x)
         z_log_var = self.z_log_var_(x)
         return z_mean, z_log_var
+
 
 class Sampler(nn.Module):
 
@@ -173,10 +172,10 @@ class Decoder(nn.Module):
         self.latent_dim = latent_dim
         self.linear1 = nn.Linear(latent_dim, 64)
         self.convt1 = nn.ConvTranspose2d(
-            64, 32, kernel_size=4, stride=2, padding=0, output_padding=0
+            64, 32, kernel_size=3, stride=2, padding=0, output_padding=0
         )
         self.convt2 = nn.ConvTranspose2d(
-            32, 16, kernel_size=4, stride=2, padding=1, output_padding=0
+            32, 16, kernel_size=4, stride=2, padding=1, output_padding=1
         )
         self.convt3 = nn.ConvTranspose2d(
             16, 8, kernel_size=4, stride=2, padding=1, output_padding=0
@@ -187,7 +186,7 @@ class Decoder(nn.Module):
 
     def forward(self, latent_input):
         x = self.linear1(latent_input)
-        x = x.view(-1, 64, 1, 1)
+        x = x.reshape(-1, 64, 1, 1)
         x = self.convt1(x)
         x = nn.ReLU()(x)
         x = self.convt2(x)
@@ -198,21 +197,21 @@ class Decoder(nn.Module):
         decoded_image = nn.Sigmoid()(decoded_image)
         return decoded_image
 
+
 class VAE(nn.Module):
 
     def __init__(self, encoder, sampler, decoder, latent_dim):
         super().__init__()
         self.latent_dim = latent_dim
-        self.encoder = Encoder(latent_dim)
-        self.sampler = Sampler(latent_dim)
-        self.decoder = Decoder(latent_dim)
+        self.encoder = encoder(latent_dim)
+        self.sampler = sampler(latent_dim)
+        self.decoder = decoder(latent_dim)
 
     def forward(self, inputs):
         zmean, zlogvar = self.encoder(inputs)
         samps = self.sampler(zmean, zlogvar)
         recon = self.decoder(samps)
         return recon, (zmean, zlogvar)
-
 
 loss_fn = nn.BCELoss(reduction='sum')
 
@@ -230,7 +229,7 @@ vae = VAE(Encoder, Sampler, Decoder, latent_dim)
 optimizer = torch.optim.Adam(vae.parameters(), lr=.001)
 
 # for d in train_dataloader:
-#     im = d[0][3]
+#     im = d[0][0]
 #     break
 # im = im.unsqueeze(0)
 # recon = vae(im)[0][0][0].detach().numpy()
@@ -261,10 +260,6 @@ def train_one_epoch(dataloader):
             print(f'batch {i / 80} loss: {last_loss}')
             running_loss = 0.
     return total_loss / counter
-
-for d in train_dataloader:
-    print(type(d[0]))
-    break
 
 #|%%--%%| <yTDNqaKKyM|Atekkf6qiX>
         
@@ -302,7 +297,19 @@ for epoch in range(EPOCHS):
 #|%%--%%| <Atekkf6qiX|aUGAVHFWXA>
 
 vae_loaded = VAE(Encoder, Sampler, Decoder, 2)
+
 vae_loaded.load_state_dict(torch.load('mnist_vae.torch'))
+
+# view one reconstruction
+for i, im in enumerate(trainset):
+    im = im[0].unsqueeze(0)
+    if i == 2:
+        break
+recon = vae_loaded(im)[0][0][0].detach().numpy()
+fig, ax = plt.subplots(1, 2)
+ax[0].imshow(im[0][0])
+ax[1].imshow(recon)
+plt.show()
 
 # view the latent space
 latents  = []
@@ -313,21 +320,19 @@ for d in val_dataloader:
     latents.append(encs)
 latents = np.vstack(latents)
 labels = np.hstack(labels)
-
 plt.scatter(latents[:, 0], latents[:, 1], c=labels)
 plt.show()
 
-grid = []
-for i in np.linspace(-5, -4, 15):
-    for j in np.linspace(-6, -5, 15):
-        grid.append(torch.tensor([i, j]))
-grid = torch.vstack(grid)
+# view grid comparison
+for data in val_dataloader:
+    ims = data[0]
+    recons = vae_loaded(ims)[0]
+    break
 
-grid.shape
-
-recon = vae_loaded(im)[0].detach().numpy()
+ims_grid = torchvision.utils.make_grid(ims, 8)
+recon_grid = torchvision.utils.make_grid(recons, 8)
 
 fig, ax = plt.subplots(1, 2)
-ax[0].imshow(im[0][0])
-ax[1].imshow(recon[0][0])
+ax[0].imshow(ims_grid[0])
+ax[1].imshow(recon_grid[0])
 plt.show()
