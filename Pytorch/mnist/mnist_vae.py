@@ -1,26 +1,57 @@
-from keras.datasets import mnist
-
-(train_ims, train_labs), (test_ims, test_labs) = mnist.load_data()
-
-#|%%--%%| <k7PS0uYOHY|8O1yEnaEck>
-
-from mnist import MNIST
-
-data = MNIST('/Users/nickeisenberg/GitRepos/DataSets_local/MNIST/imgs')
-train_ims, train_labs = data.load_training()
-
-#|%%--%%| <8O1yEnaEck|HwMJ9yB9AX>
-
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-import torch.functional as F
+import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 import random
 
+#|%%--%%| <k7PS0uYOHY|oz6jbmkl5u>
 
-#|%%--%%| <HwMJ9yB9AX|uqWwStcYEn>
+from keras.datasets import mnist
+
+(train_ims, train_labs), (test_ims, test_labs) = mnist.load_data()
+
+#|%%--%%| <oz6jbmkl5u|8O1yEnaEck>
+
+from mnist import MNIST
+
+root = '/Users/nickeisenberg/GitRepos/DataSets_local/MNIST/imgs' 
+data = MNIST(root)
+train_ims, train_labs = data.load_training()
+
+#|%%--%%| <8O1yEnaEck|N0iUq8ckG3>
+
+import torchvision.transforms as transforms
+import torchvision
+
+transform = transforms.Compose([
+    transforms.Resize((32, 32)),
+    transforms.ToTensor(),
+])
+
+root = '/Users/nickeisenberg/GitRepos/DataSets_local/' 
+
+# training set and train data loader
+trainset = torchvision.datasets.MNIST(
+    root=root, train=True, download=True, transform=transform
+)
+
+train_dataloader = DataLoader(
+    trainset, batch_size=64, shuffle=True
+)
+
+
+# validation set and validation data loader
+valset = torchvision.datasets.MNIST(
+    root=root, train=False, download=True, transform=transform
+)
+
+val_dataloader = DataLoader(
+    valset, batch_size=64, shuffle=False
+)
+
+#|%%--%%| <N0iUq8ckG3|uqWwStcYEn>
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -71,8 +102,6 @@ val_dataloader = DataLoader(val_dataset, 64)
 
 #|%%--%%| <ipMv8PFi0O|Exb9JYmqm4>
 
-latent_dim = 2
-
 class Encoder(nn.Module):
 
     def __init__(self, latent_dim):
@@ -104,12 +133,11 @@ class Encoder(nn.Module):
             out_channels=64,
             kernel_size=4,
             stride=2,
-            padding=1
+            padding=0
         )
-        self.flatten = nn.Flatten()
-        self.linear1 = nn.Linear(1 * 1 * 64, 16)
-        self.z_mean_ = nn.Linear(16, latent_dim)
-        self.z_log_var_ = nn.Linear(16, latent_dim)
+        self.linear1 = nn.Linear(64 * 1 * 1, 128)
+        self.z_mean_ = nn.Linear(128, latent_dim)
+        self.z_log_var_ = nn.Linear(128, latent_dim)
 
     def forward(self, input_img):
         x = self.conv1(input_img)
@@ -120,9 +148,9 @@ class Encoder(nn.Module):
         x = nn.ReLU()(x)
         x = self.conv4(x)
         x = nn.ReLU()(x)
-        x = self.flatten(x)
+        batch = x.shape[0]
+        x = F.adaptive_avg_pool2d(x, 1).reshape(batch, -1)
         x = self.linear1(x)
-        x = nn.ReLU()(x)
         z_mean = self.z_mean_(x)
         z_log_var = self.z_log_var_(x)
         return z_mean, z_log_var
@@ -143,13 +171,12 @@ class Decoder(nn.Module):
     def __init__(self, latent_dim):
         super().__init__()
         self.latent_dim = latent_dim
-        self.linear1 = nn.Linear(latent_dim, 16)
-        self.linear2 = nn.Linear(16, 1 * 1 * 64)
+        self.linear1 = nn.Linear(latent_dim, 64)
         self.convt1 = nn.ConvTranspose2d(
-            64, 32, kernel_size=4, stride=2, padding=1, output_padding=1
+            64, 32, kernel_size=4, stride=2, padding=0, output_padding=0
         )
         self.convt2 = nn.ConvTranspose2d(
-            32, 16, kernel_size=4, stride=2, padding=1, output_padding=1
+            32, 16, kernel_size=4, stride=2, padding=1, output_padding=0
         )
         self.convt3 = nn.ConvTranspose2d(
             16, 8, kernel_size=4, stride=2, padding=1, output_padding=0
@@ -160,10 +187,7 @@ class Decoder(nn.Module):
 
     def forward(self, latent_input):
         x = self.linear1(latent_input)
-        x = nn.ReLU()(x)
-        x = self.linear2(x)
-        x = nn.ReLU()(x)
-        x = x.reshape(x.shape[0], 1, 1, 64).permute(0, 3, 1, 2)
+        x = x.view(-1, 64, 1, 1)
         x = self.convt1(x)
         x = nn.ReLU()(x)
         x = self.convt2(x)
@@ -190,31 +214,29 @@ class VAE(nn.Module):
         return recon, (zmean, zlogvar)
 
 
-loss_fn = nn.BCELoss()
+loss_fn = nn.BCELoss(reduction='sum')
 
 def kl_regularization(z_mean, z_log_var):
     kl_reg = -0.5
     kl_reg *= (1 + z_log_var - torch.square(z_mean) - torch.exp(z_log_var))
     return torch.sum(kl_reg)
 
-# ims = nn.Sigmoid()(torch.randn((4, 1, 28, 28)))
-# tars = nn.Sigmoid()(torch.randn((4, 1, 28, 28)))
-# zm = torch.randn((4, 2))
-# zv = torch.randn((4, 2))
-# 
-# loss_fn(ims, tars)
-# kl_regularization(zm, zv)
 
 #|%%--%%| <Exb9JYmqm4|yTDNqaKKyM>
+
+latent_dim = 2
 
 vae = VAE(Encoder, Sampler, Decoder, latent_dim)
 optimizer = torch.optim.Adam(vae.parameters(), lr=.001)
 
-# im = train_ims[0]
+# for d in train_dataloader:
+#     im = d[0][3]
+#     break
 # im = im.unsqueeze(0)
-# im.shape
 # recon = vae(im)[0][0][0].detach().numpy()
-# plt.imshow(recon)
+# fig, ax = plt.subplots(1, 2)
+# ax[0].imshow(im[0][0])
+# ax[1].imshow(recon)
 # plt.show()
 
 def train_one_epoch(dataloader):
@@ -280,10 +302,12 @@ for epoch in range(EPOCHS):
 #|%%--%%| <Atekkf6qiX|aUGAVHFWXA>
 
 vae_loaded = VAE(Encoder, Sampler, Decoder, 2)
-
 vae_loaded.load_state_dict(torch.load('mnist_vae.torch'))
 
-im = train_ims[200].unsqueeze(0)
+for d in val_dataloader:
+    im = d[0][11]
+    break
+im = im.unsqueeze(0)
 
 recon = vae_loaded(im)[0].detach().numpy()
 
