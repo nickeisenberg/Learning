@@ -304,10 +304,26 @@ for epoch in range(EPOCHS):
 vae_loaded = VAE(Encoder, Sampler, Decoder, 2)
 vae_loaded.load_state_dict(torch.load('mnist_vae.torch'))
 
+# view the latent space
+latents  = []
+labels = []
 for d in val_dataloader:
-    im = d[0][11]
-    break
-im = im.unsqueeze(0)
+    labels.append(d[1].detach().numpy())
+    encs = vae.encoder(d[0])[1].detach().numpy()
+    latents.append(encs)
+latents = np.vstack(latents)
+labels = np.hstack(labels)
+
+plt.scatter(latents[:, 0], latents[:, 1], c=labels)
+plt.show()
+
+grid = []
+for i in np.linspace(-5, -4, 15):
+    for j in np.linspace(-6, -5, 15):
+        grid.append(torch.tensor([i, j]))
+grid = torch.vstack(grid)
+
+grid.shape
 
 recon = vae_loaded(im)[0].detach().numpy()
 
