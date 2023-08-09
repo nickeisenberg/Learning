@@ -316,9 +316,9 @@ latents  = []
 labels = []
 for d in val_dataloader:
     labels.append(d[1].detach().numpy())
-    encs = vae.encoder(d[0])[1].detach().numpy()
-    latents.append(encs)
-latents = np.vstack(latents)
+    zmeans, zlogvars = vae_loaded.encoder(d[0])
+    latents.append(vae_loaded.sampler(zmeans, zlogvars))
+latents = torch.vstack(latents).detach().numpy()
 labels = np.hstack(labels)
 plt.scatter(latents[:, 0], latents[:, 1], c=labels)
 plt.show()
