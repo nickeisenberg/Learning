@@ -6,9 +6,9 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
  
 np.random.seed(1)
- 
+
 time = np.linspace(0, 5, 5000)
- 
+  
 def bump(x, s, plateau=False):
     if plateau:
         b = np.minimum(np.exp(- (x - s) ** 2 / .005) / np.sqrt(.005), 12)
@@ -61,8 +61,6 @@ train_inputs = keras.utils.timeseries_dataset_from_array(
         sequence_length=seq_len,
         batch_size=None)
 train_inputs = np.array([np.array(inp) for inp in train_inputs])
- 
-print(train_inputs.shape)
  
 # LSTM autoencoder
 inputs = keras.Input(shape=(seq_len,))

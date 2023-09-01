@@ -5,17 +5,24 @@ import torch
 import torch.nn as nn
 import skimage.io as io
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+#|%%--%%| <w4aBwJDoRX|keMTMEb2sT>
+
 transform = transforms.Compose([
     transforms.Resize((64, 64)),
     transforms.ToTensor(),
 ])
 
 root = '/Users/nickeisenberg/GitRepos/DataSets_local/' 
-
 # training set and train data loader
 totalset = torchvision.datasets.CelebA(
     root=root, split='train', download=True, transform=transform
 )
+
+# direct from directory
+root = '/Users/nickeisenberg/GitRepos/DataSets_local/celeba/'
+totalset = torchvision.datasets.ImageFolder(root, transform)
 
 train_size = int(len(totalset) * .8)
 val_size = len(totalset) - train_size
@@ -29,6 +36,7 @@ val_dataloader = DataLoader(
     valset, batch_size=64, shuffle=True
 )
 
+#|%%--%%| <keMTMEb2sT|LNhyjPJAgt>
 
 class Discriminator(nn.Module):
 
@@ -100,14 +108,18 @@ class Generator(nn.Module):
         x = nn.Sigmoid()(x)
         return x
 
+#|%%--%%| <LNhyjPJAgt|X0c1TILNRb>
+
 latent_dim = 2
-discriminator = Discriminator()
-generator = Generator(latent_dim)
-        
+discriminator = Discriminator().to(device)
+generator = Generator(latent_dim).to(device)
+
 loss_fn = nn.BCELoss()
 
-optim_d = torch.optim.Adam(discriminator.parameters(), lr=.0001)
+optim_d = torch.optim.Adam(discriminator.parameters(), lr=.0001, )
 optim_g = torch.optim.Adam(generator.parameters(), lr=.0001)
+
+#|%%--%%| <X0c1TILNRb|9BG1XYDcSq>
 
 def train_one_epoch(
         train_dataloader=train_dataloader,
@@ -120,22 +132,24 @@ def train_one_epoch(
     counter = 1
     for i, t_data in enumerate(train_dataloader):
         counter += 1
+
+        t_ims, _ = t_data.to(device)
+        batch_size = t_ims.shape[0]
         
         # Discriminator
         optim_d.zero_grad()
 
-        t_ims, _ = t_data
+        latents = torch.randn((batch_size, latent_dim)).to(device)
+        fake_ims = generator(latents).to(device)
 
-        batch_size = t_ims.shape[0]
-
-        latents = torch.randn((batch_size, latent_dim))
-        fake_ims = generator(latents)
-
-        combined_ims = torch.vstack((t_ims, fake_ims))
+        combined_ims = torch.vstack((t_ims, fake_ims)).to(device)
         combined_labels = torch.hstack(
-            (torch.ones(batch_size), torch.zeros(batch_size))
-        ).reshape((-1, 1))
-        combined_labels += .05 * torch.rand((batch_size * 2, 1))
+            (
+                torch.ones(batch_size).to(device), 
+                torch.zeros(batch_size).to(device)
+            )
+        ).reshape((-1, 1)).to(device)
+        combined_labels += .05 * torch.rand((batch_size * 2, 1)).to(device)
 
         d_loss = loss_fn(discriminator(combined_ims), combined_labels)
         d_loss.backward()
@@ -145,9 +159,9 @@ def train_one_epoch(
         # Generator 
         optim_g.zero_grad()
 
-        latents = torch.randn((batch_size, latent_dim))
-        fake_ims = generator(latents)
-        fake_labels = torch.ones((batch_size, 1))
+        latents = torch.randn((batch_size, latent_dim)).to(device)
+        fake_ims = generator(latents).to(device)
+        fake_labels = torch.ones((batch_size, 1)).to(device)
 
         g_loss = loss_fn(discriminator(fake_ims), fake_labels)
         g_loss.backward()
@@ -174,24 +188,27 @@ def validation_one_epoch(
     counter = 1 
     for i, v_data in enumerate(val_dataloader):
         counter += 1
-        v_ims, _ = v_data
+        v_ims, _ = v_data.to(device)
         v_batch_size = v_ims.shape[0]
 
         with torch.no_grad():
-            latents = torch.randn((v_batch_size, latent_dim))
-            fake_ims = generator(latents)
+            latents = torch.randn((v_batch_size, latent_dim)).to(device)
+            fake_ims = generator(latents).to(device)
 
-            combined_ims = torch.vstack((v_ims, fake_ims))
+            combined_ims = torch.vstack((v_ims, fake_ims)).to(device)
             combined_labels = torch.hstack(
-                (torch.ones(v_batch_size), torch.zeros(v_batch_size))
-            ).reshape((-1, 1))
+                (
+                    torch.ones(v_batch_size).to(device),
+                    torch.zeros(v_batch_size).to(device)
+                )
+            ).reshape((-1, 1)).to(device)
 
             v_d_loss = loss_fn(discriminator(combined_ims), combined_labels)
             v_running_loss_d += v_d_loss.item()
 
-            latents = torch.randn((batch_size, latent_dim))
-            fake_ims = generator(latents)
-            fake_labels = torch.ones((batch_size, 1))
+            latents = torch.randn((batch_size, latent_dim)).to(device)
+            fake_ims = generator(latents).to(device)
+            fake_labels = torch.ones((batch_size, 1)).to(device)
 
             v_g_loss = loss_fn(discriminator(fake_ims), fake_labels)
             v_running_loss_g += v_g_loss.item()
@@ -201,6 +218,7 @@ def validation_one_epoch(
 
     return avg_v_loss_d, avg_v_loss_g
 
+#|%%--%%| <9BG1XYDcSq|J9kMZL0mb0>
 
 EPOCHS = 30
 for epoch in range(EPOCHS):
