@@ -76,6 +76,7 @@ def comment_replies(submission_list=None,
 
     return submissions_comments_replies
 
+
 def dataset_makers_scr(subs_coms_replies, fn):
     with open(fn, 'w') as f:
         for isub, sub in enumerate(list(submissions[:1])):
@@ -88,6 +89,7 @@ def dataset_makers_scr(subs_coms_replies, fn):
                     f.write(f"Reply_{isub}.{ic}.{ir} -- {rep.body}")
                     f.write('\n')
     return None
+
 
 def get_the_comments(subreddit,
                      search,
@@ -110,6 +112,7 @@ def get_the_comments(subreddit,
                           no_of_comments=100)
 
     return coms
+
 
 def dataset_makers_sc(com_dic, fn):
     with open(fn, 'w') as f:

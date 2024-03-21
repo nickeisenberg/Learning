@@ -1,6 +1,7 @@
 import paramiko
 from scp import SCPClient
 import os
+import time
 
 class SecureCopyProtocol:
     def __init__(self, hostname, port, username, pem_file_path):
@@ -41,18 +42,22 @@ class SecureCopyProtocol:
     def _progress(filename, size, sent):
         """ Function to track the progress of the SCP transfer """
         print(f"Transferring {filename}: {float(sent)/float(size)*100:.2f}% complete")
+        print('\033[1A', end='\x1b[2K')
 
-hostname = '54.176.152.39'
+hostname = '13.56.233.243'
 port = 22
 username = 'nick'
 pem_file_path = os.environ["USWEST1"]
 
 scp = SecureCopyProtocol(hostname, port, username, pem_file_path)
 
-remote_path = '/nvme1n1users/nick/Tmp/test/'
+remote_path = '/nvme1n1users/nick/Tmp/paramiko'
+celebA_path = "/home/nicholas/Datasets/celebA/imgs_1000"
 
+now = time.time()
 local_path = "./move"
-scp.put(local_path, remote_path)
+scp.put(celebA_path, remote_path)
+after = time.time() - now
 
 local_path = "./receive"
 scp.get(remote_path, local_path)
